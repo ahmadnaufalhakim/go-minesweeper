@@ -63,7 +63,7 @@ func main() {
 		// Draw
 		screen.Clear()
 		minesweeper.Draw(screen, gameOptions.BorderStyle, gameOptions.ShowInnerBorders, 10, 10)
-		DrawString(screen, 10, 9, gameOptions.Style, fmt.Sprintf("%+v", minesweeper.IsGameOver))
+		DrawString(screen, 10, 9, gameOptions.Style, fmt.Sprintf("IsGameOver:%+v, IsWon:%+v, RevealedCount:%+v==%+v*%+v-%+v", minesweeper.IsGameOver, minesweeper.IsWon, minesweeper.RevealedCount, minesweeper.Rows, minesweeper.Cols, minesweeper.BombCount))
 		screen.Show()
 
 		// Wait for event

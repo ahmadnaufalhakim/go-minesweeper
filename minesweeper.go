@@ -20,6 +20,8 @@ type Minesweeper struct {
 	Grid          [][]Cell
 	BombPositions [][2]int
 	IsGameOver    bool
+	IsWon         bool
+	RevealedCount int
 }
 
 const CLEAR int = 0
@@ -85,6 +87,7 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 		}
 		if cell.Revealed {
 			m.Chord(row, col)
+			return
 		}
 		if cell.Value == BOMB {
 			cell.Revealed = true
@@ -103,6 +106,12 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 	}
 
 	cell.Revealed = true
+	m.RevealedCount++
+	if m.RevealedCount == m.Rows*m.Cols-m.BombCount {
+		m.IsGameOver = true
+		m.IsWon = true
+	}
+
 	if cell.Value == CLEAR {
 		for _, direction := range directions {
 			newRow := row + direction[0]
@@ -195,6 +204,8 @@ func GenerateBoard(rows, cols, bombCount int) (*Minesweeper, error) {
 		Grid:          grid,
 		BombPositions: bombPositions,
 		IsGameOver:    false,
+		IsWon:         false,
+		RevealedCount: 0,
 	}
 
 	return m, nil
@@ -209,17 +220,29 @@ func (m *Minesweeper) drawBombs(
 	if showInnerBorders {
 		cellWidth, cellHeight = 2, 2
 	}
+
 	for _, pos := range m.BombPositions {
+		var (
+			char  rune
+			style tcell.Style
+		)
 		r, c := pos[0], pos[1]
 		cell := m.Grid[r][c]
 		if cell.Flagged {
 			continue
 		}
+		if m.IsWon {
+			char = '⚑'
+			style = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorDarkRed)
+		} else {
+			char = intToRune[BOMB]
+			style = ValueToCellStyle[cell.Value]
+		}
 		NewSprite(
-			intToRune[BOMB],
+			char,
 			screenX+(cellWidth*c+1),
 			screenY+(cellHeight*r+1),
-		).Draw(screen, ValueToCellStyle[cell.Value])
+		).Draw(screen, style)
 	}
 }
 
