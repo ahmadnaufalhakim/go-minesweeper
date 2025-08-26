@@ -24,6 +24,12 @@ type Minesweeper struct {
 	RevealedCount int
 }
 
+type DifficultyConfig struct {
+	Rows      int
+	Cols      int
+	BombCount int
+}
+
 const CLEAR int = 0
 const BOMB int = -1
 
@@ -67,6 +73,24 @@ var borderSets = map[BorderStyle]map[string]rune{
 		"tRight":      '╠',
 		"tLeft":       '╣',
 		"cross":       '╬',
+	},
+}
+
+var DifficultyMap = map[string]DifficultyConfig{
+	"beginner": {
+		Rows:      9,
+		Cols:      9,
+		BombCount: 10,
+	},
+	"intermediate": {
+		Rows:      16,
+		Cols:      16,
+		BombCount: 40,
+	},
+	"expert": {
+		Rows:      16,
+		Cols:      30,
+		BombCount: 99,
 	},
 }
 
@@ -177,30 +201,30 @@ func addBomb(grid [][]Cell, rows, cols, row, col int) {
 	}
 }
 
-func GenerateBoard(rows, cols, bombCount int) (*Minesweeper, error) {
-	if rows <= 0 || cols <= 0 || bombCount <= 0 {
+func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
+	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
 		return nil, errors.New("rows, cols, and bombCount must be non-negative integer")
 	}
 
-	grid := make([][]Cell, rows)
+	grid := make([][]Cell, cfg.Rows)
 	for r := range grid {
-		grid[r] = make([]Cell, cols)
+		grid[r] = make([]Cell, cfg.Cols)
 	}
 
 	bombPositions := make([][2]int, 0)
-	for len(bombPositions) < bombCount {
-		pos := rand.Intn(rows * cols)
-		r, c := pos/cols, pos%cols
+	for len(bombPositions) < cfg.BombCount {
+		pos := rand.Intn(cfg.Rows * cfg.Cols)
+		r, c := pos/cfg.Cols, pos%cfg.Cols
 		if grid[r][c].Value != BOMB {
 			bombPositions = append(bombPositions, [2]int{r, c})
-			addBomb(grid, rows, cols, r, c)
+			addBomb(grid, cfg.Rows, cfg.Cols, r, c)
 		}
 	}
 
 	m := &Minesweeper{
-		Rows:          rows,
-		Cols:          cols,
-		BombCount:     bombCount,
+		Rows:          cfg.Rows,
+		Cols:          cfg.Cols,
+		BombCount:     cfg.BombCount,
 		Grid:          grid,
 		BombPositions: bombPositions,
 		IsGameOver:    false,

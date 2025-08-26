@@ -12,6 +12,7 @@ type GameOptions struct {
 	BorderStyle      BorderStyle
 	Control          string
 	ShowInnerBorders bool
+	Difficulty       DifficultyConfig
 }
 
 func initGameOptions() GameOptions {
@@ -20,6 +21,7 @@ func initGameOptions() GameOptions {
 		BorderStyle:      DefaultBorder,
 		Control:          "mouse",
 		ShowInnerBorders: false,
+		Difficulty:       DifficultyMap["beginner"],
 		//TODO: debug for `ShowInnerBorders = true`
 	}
 }
@@ -51,7 +53,7 @@ func main() {
 	screen.Clear()
 
 	gameOptions := initGameOptions()
-	minesweeper, err := GenerateBoard(16, 30, 99)
+	minesweeper, err := GenerateBoard(gameOptions.Difficulty)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,7 +82,7 @@ func main() {
 				case 'q':
 					running = false
 				case 'r':
-					minesweeper, err = GenerateBoard(16, 30, 99)
+					minesweeper, err = GenerateBoard(gameOptions.Difficulty)
 					if err != nil {
 						log.Fatal(err)
 					}
