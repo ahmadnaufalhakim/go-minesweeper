@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gdamore/tcell/v2"
@@ -53,7 +52,6 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 		} else {
 			DrawCentered(screen, mScreenY-3, opts.Style, "🙂")
 		}
-		DrawString(screen, 0, h-1, opts.Style, fmt.Sprintf("%+v", opts))
 		screen.Show()
 
 		ev := screen.PollEvent()
