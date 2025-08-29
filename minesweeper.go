@@ -280,7 +280,7 @@ func (m *Minesweeper) drawBombs(
 		}
 		if m.IsWon {
 			char = '⚑'
-			style = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorDarkRed)
+			style = FlagStyle
 		} else {
 			char = intToRune[BOMB]
 			style = ValueToCellStyle[cell.Value]
@@ -345,7 +345,7 @@ func (m *Minesweeper) Draw(
 					} else {
 						char = '⚑'
 					}
-					style = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorDarkRed)
+					style = FlagStyle
 				} else {
 					char = ' '
 					style = DefaultBorderStyle

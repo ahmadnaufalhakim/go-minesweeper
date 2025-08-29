@@ -16,7 +16,6 @@ var (
 	COLOR_DARKGRAY  = tcell.NewRGBColor(96, 96, 96)
 	COLOR_LIGHTGRAY = tcell.NewRGBColor(200, 200, 200)
 	COLOR_BOMB      = tcell.ColorWhite
-	COLOR_FLAG      = tcell.ColorYellow
 	COLOR_ONE       = tcell.ColorBlue
 	COLOR_TWO       = tcell.NewRGBColor(0, 127, 0)
 	COLOR_THREE     = tcell.ColorRed
@@ -40,3 +39,4 @@ var ValueToCellStyle = map[int]tcell.Style{
 }
 
 var DefaultStyle = tcell.StyleDefault.Background(COLOR_LIGHTGRAY).Foreground(tcell.ColorBlack)
+var FlagStyle = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorDarkRed)
