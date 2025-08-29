@@ -30,8 +30,13 @@ type DifficultyConfig struct {
 	BombCount int
 }
 
-const CLEAR int = 0
-const BOMB int = -1
+const (
+	CLEAR int = 0
+	BOMB  int = -1
+
+	MAX_ROWS int = 36
+	MAX_COLS int = 160
+)
 
 var intToRune = map[int]rune{
 	CLEAR: ' ',
@@ -87,10 +92,20 @@ var DifficultyMap = map[string]DifficultyConfig{
 		Cols:      16,
 		BombCount: 40,
 	},
-	"expert": {
+	"advanced": {
 		Rows:      16,
 		Cols:      30,
 		BombCount: 99,
+	},
+	"expert": {
+		Rows:      24,
+		Cols:      30,
+		BombCount: 160,
+	},
+	"insane": {
+		Rows:      30,
+		Cols:      30,
+		BombCount: 220,
 	},
 }
 
@@ -204,6 +219,14 @@ func addBomb(grid [][]Cell, rows, cols, row, col int) {
 func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
 		return nil, errors.New("rows, cols, and bombCount must be non-negative integer")
+	} else if cfg.Rows > MAX_ROWS {
+		return nil, errors.New("maximum number of rows is capped at 36")
+	} else if cfg.Cols > MAX_COLS {
+		return nil, errors.New("maximum number of cols is capped at 160")
+	}
+
+	if cfg.BombCount >= cfg.Rows*cfg.Cols {
+		return nil, errors.New("too many bombCount, must be in the range of [1, rows*cols-1]")
 	}
 
 	grid := make([][]Cell, cfg.Rows)
