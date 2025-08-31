@@ -21,6 +21,7 @@ const (
 
 func drawMainMenu(screen tcell.Screen, titleItems []string, selected int, difficulty string, opts *GameOptions) {
 	_, h := screen.Size()
+
 	titleHeight := len(titleItems)
 
 	menuItems := []string{
@@ -49,32 +50,74 @@ func drawMainMenu(screen tcell.Screen, titleItems []string, selected int, diffic
 	}
 }
 
-func drawOptionsMenu(screen tcell.Screen, selected int, opts *GameOptions) {
+func drawOptionsMenu(screen tcell.Screen, titleItems []string, selected int, opts *GameOptions) {
+	_, h := screen.Size()
+
+	titleHeight := len(titleItems)
+
 	menuItems := []string{
 		fmt.Sprintf("Show inner borders: %v", opts.ShowInnerBorders),
 		fmt.Sprintf("Border style: %v", opts.BorderStyle),
 		"Back",
 	}
-	DrawCentered(screen, 2, opts.Style, "=== Options ===")
+	menuHeight := (len(menuItems)+1)*2 - 1
+
+	contentHeight := titleHeight + 4 + menuHeight
+	cScreenY := (h-contentHeight)/2 - contentHeight%2
+
+	for i, titleItem := range titleItems {
+		DrawCentered(screen, cScreenY+i, opts.Style, titleItem)
+	}
+
+	DrawCentered(screen, cScreenY+titleHeight+4, opts.Style, "=== Options ===")
 	for i, menuItem := range menuItems {
 		prefix := ""
 		if i == selected {
 			prefix = "> "
 		}
-		DrawCentered(screen, 4+i*2, opts.Style, prefix+menuItem)
+		DrawCentered(screen, cScreenY+titleHeight+6+i*2, opts.Style, prefix+menuItem)
 	}
 }
 
-func drawCredits(screen tcell.Screen, opts *GameOptions) {
-	DrawCentered(screen, 2, opts.Style, "=== Credits ===")
-	DrawCentered(screen, 5, opts.Style, "made with ❤️by Ahmad Naufal Hakim 🤓")
-	DrawCentered(screen, 8, opts.Style, "[Esc] Back")
+func drawCredits(screen tcell.Screen, titleItems []string, opts *GameOptions) {
+	_, h := screen.Size()
+
+	titleHeight := len(titleItems)
+
+	menuItems := []string{
+		"=== Credits ===",
+		"made with ❤️by Ahmad Naufal Hakim 🤓",
+		"[Esc] Back",
+	}
+	menuHeight := len(menuItems)*2 - 1
+
+	contentHeight := titleHeight + 4 + menuHeight
+	cScreenY := (h-contentHeight)/2 - contentHeight%2
+
+	for i, titleItem := range titleItems {
+		DrawCentered(screen, cScreenY+i, opts.Style, titleItem)
+	}
+
+	for i, menuItem := range menuItems {
+		DrawCentered(screen, cScreenY+titleHeight+4+i*3, opts.Style, menuItem)
+	}
 }
 
 func drawQuitConfirm(screen tcell.Screen, opts *GameOptions) {
-	DrawCentered(screen, 5, opts.Style, "Are you sure you want to quit?")
-	DrawCentered(screen, 7, opts.Style, "[y] yeah, i'm washed chat😭")
-	DrawCentered(screen, 8, opts.Style, "[n] nah, i'd win😎")
+	_, h := screen.Size()
+
+	menuItems := []string{
+		"[y] yeah, i'm washed chat 😭",
+		"[n] nah, i'd win 😎",
+	}
+
+	contentHeight := 4
+	cScreenY := (h-contentHeight)/2 - contentHeight%2
+
+	DrawCentered(screen, cScreenY, opts.Style, "Are you sure you want to quit?")
+	for i, menuItem := range menuItems {
+		DrawCentered(screen, 2+cScreenY+i, opts.Style, menuItem)
+	}
 }
 
 func drawCustomInput(
@@ -135,10 +178,10 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 			drawMainMenu(screen, titleItems, selected, difficulties[diffIndex], opts)
 			menuCount = 5
 		case PageOptions:
-			drawOptionsMenu(screen, selected, opts)
+			drawOptionsMenu(screen, titleItems, selected, opts)
 			menuCount = 3
 		case PageCredits:
-			drawCredits(screen, opts)
+			drawCredits(screen, titleItems, opts)
 		case PageQuitConfirm:
 			drawQuitConfirm(screen, opts)
 		case PageCustomInput:
