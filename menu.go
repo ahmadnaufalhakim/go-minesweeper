@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"unicode"
 
+	"github.com/ahmadnaufalhakim/go-minesweeper/assets"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -18,7 +19,10 @@ const (
 	PageCustomInput
 )
 
-func drawMainMenu(screen tcell.Screen, selected int, difficulty string, opts *GameOptions) {
+func drawMainMenu(screen tcell.Screen, titleItems []string, selected int, difficulty string, opts *GameOptions) {
+	_, h := screen.Size()
+	titleHeight := len(titleItems)
+
 	menuItems := []string{
 		fmt.Sprintf("Play <%s>", difficulty),
 		fmt.Sprintf("Play NG <%s>", difficulty),
@@ -26,13 +30,22 @@ func drawMainMenu(screen tcell.Screen, selected int, difficulty string, opts *Ga
 		"Credits",
 		"Quit",
 	}
-	DrawCentered(screen, 2, opts.Style, "=== Main Menu ===")
+	menuHeight := (len(menuItems)+1)*2 - 1
+
+	contentHeight := titleHeight + 4 + menuHeight
+	cScreenY := (h-contentHeight)/2 - contentHeight%2
+
+	for i, titleItem := range titleItems {
+		DrawCentered(screen, cScreenY+i, opts.Style, titleItem)
+	}
+
+	DrawCentered(screen, cScreenY+titleHeight+4, opts.Style, "=== Main Menu ===")
 	for i, menuItem := range menuItems {
 		prefix := ""
 		if i == selected {
 			prefix = "> "
 		}
-		DrawCentered(screen, 4+i*2, opts.Style, prefix+menuItem)
+		DrawCentered(screen, cScreenY+titleHeight+6+i*2, opts.Style, prefix+menuItem)
 	}
 }
 
@@ -103,6 +116,7 @@ func drawHelpHint(screen tcell.Screen, opts *GameOptions) {
 
 func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, DifficultyConfig, bool) {
 	page := PageMain
+	titleItems := assets.RandomTitle()
 	selected := 0
 	difficulties := []string{"beginner", "intermediate", "advanced", "expert", "insane", "custom"}
 	diffIndex := 0
@@ -118,7 +132,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 		screen.Clear()
 		switch page {
 		case PageMain:
-			drawMainMenu(screen, selected, difficulties[diffIndex], opts)
+			drawMainMenu(screen, titleItems, selected, difficulties[diffIndex], opts)
 			menuCount = 5
 		case PageOptions:
 			drawOptionsMenu(screen, selected, opts)
