@@ -24,7 +24,7 @@ func DrawString(screen tcell.Screen, x, y int, style tcell.Style, s string) {
 func DrawCentered(screen tcell.Screen, y int, style tcell.Style, str string) {
 	w, _ := screen.Size()
 	x := (w-len(str))/2 - len(str)%2
-	DrawString(screen, x, y, DefaultStyle, str)
+	DrawString(screen, x, y, style, str)
 }
 
 func (s *Sprite) Draw(screen tcell.Screen, style tcell.Style) {
