@@ -14,7 +14,7 @@ var DefaultBorderStyle = tcell.StyleDefault.Background(COLOR_DARKGRAY).Foregroun
 
 var (
 	COLOR_DARKGRAY  = tcell.NewRGBColor(96, 96, 96)
-	COLOR_LIGHTGRAY = tcell.NewRGBColor(200, 200, 200)
+	COLOR_LIGHTGRAY = tcell.NewRGBColor(240, 240, 240)
 	COLOR_BOMB      = tcell.ColorWhite
 	COLOR_ONE       = tcell.ColorBlue
 	COLOR_TWO       = tcell.NewRGBColor(0, 127, 0)
@@ -36,6 +36,14 @@ var ValueToCellStyle = map[int]tcell.Style{
 	6:     tcell.StyleDefault.Background(COLOR_LIGHTGRAY).Foreground(COLOR_SIX).Bold(true),
 	7:     tcell.StyleDefault.Background(COLOR_LIGHTGRAY).Foreground(COLOR_SEVEN).Bold(true),
 	8:     tcell.StyleDefault.Background(COLOR_LIGHTGRAY).Foreground(COLOR_EIGHT).Bold(true),
+}
+var DifficultyToStyle = map[string]tcell.Style{
+	"beginner":     tcell.StyleDefault.Background(tcell.ColorDarkBlue),
+	"intermediate": tcell.StyleDefault.Background(tcell.ColorGreen),
+	"advanced":     tcell.StyleDefault.Background(tcell.ColorPaleVioletRed),
+	"expert":       tcell.StyleDefault.Background(tcell.ColorMediumVioletRed),
+	"insane":       tcell.StyleDefault.Background(tcell.ColorPurple),
+	"custom":       tcell.StyleDefault.Background(tcell.ColorBlack),
 }
 
 var DefaultStyle = tcell.StyleDefault.Background(COLOR_LIGHTGRAY).Foreground(tcell.ColorBlack)
