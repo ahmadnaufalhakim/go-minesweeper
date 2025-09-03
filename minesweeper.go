@@ -227,7 +227,7 @@ func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 	}
 
 	if cfg.BombCount >= cfg.Rows*cfg.Cols {
-		return nil, errors.New("too many bombCount, must be in the range of [1, rows*cols-1]")
+		return nil, fmt.Errorf("too many bombCount, must be in the range of [1, %d]", cfg.Rows*cfg.Cols-1)
 	}
 
 	grid := make([][]Cell, cfg.Rows)
