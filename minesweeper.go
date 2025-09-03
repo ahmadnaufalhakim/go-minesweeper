@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 
 	"github.com/gdamore/tcell/v2"
@@ -220,9 +221,9 @@ func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
 		return nil, errors.New("rows, cols, and bombCount must be non-negative integer")
 	} else if cfg.Rows > MAX_ROWS {
-		return nil, errors.New("maximum number of rows is capped at 36")
+		return nil, fmt.Errorf("maximum number of rows is capped at %d", MAX_ROWS)
 	} else if cfg.Cols > MAX_COLS {
-		return nil, errors.New("maximum number of cols is capped at 160")
+		return nil, fmt.Errorf("maximum number of cols is capped at %d", MAX_COLS)
 	}
 
 	if cfg.BombCount >= cfg.Rows*cfg.Cols {
