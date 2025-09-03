@@ -145,8 +145,8 @@ func drawCustomInput(
 	titleHeight := len(titleItems)
 
 	menuItems := []string{
-		fmt.Sprintf("Rows: %d", cfg.Rows),
-		fmt.Sprintf("Cols: %d", cfg.Cols),
+		fmt.Sprintf("Rows: <%d>", cfg.Rows),
+		fmt.Sprintf("Cols: <%d>", cfg.Cols),
 		fmt.Sprintf("BombCount: %d", cfg.BombCount),
 		"Start",
 		"Back",
@@ -159,7 +159,7 @@ func drawCustomInput(
 	drawTitleItems(screen, titleItems, titleOffsetY, opts)
 	drawMenuItems(screen, selected, "⚑⚑⚑ Custom Difficulty  ⚑⚑⚑", menuItems, titleOffsetY+titleHeight+2, opts)
 
-	if buf != "" {
+	if selected == 2 {
 		DrawCentered(screen, titleOffsetY+titleHeight+2+(len(menuItems)+1)*2, opts.Style, fmt.Sprintf("Typing: %s", buf))
 	}
 	if errMsg != "" {
@@ -183,7 +183,16 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 	diffNGIndex := 0
 	playingNG := false
 	customCfg := DifficultyConfig{Rows: 9, Cols: 9, BombCount: 10}
-	fieldIndex := 0
+	rowsOptions := make([]int, MAX_ROWS)
+	for i := range MAX_ROWS {
+		rowsOptions[i] = i + 1
+	}
+	colsOptions := make([]int, MAX_COLS)
+	for i := range MAX_COLS {
+		colsOptions[i] = i + 1
+	}
+	rowsIndex := 8
+	colsIndex := 8
 	inputBuffer := ""
 	errorMsg := ""
 
@@ -203,7 +212,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 		case PageQuitConfirm:
 			drawQuitConfirm(screen, opts)
 		case PageCustomInput:
-			drawCustomInput(screen, titleItems, fieldIndex, customCfg, inputBuffer, errorMsg, opts)
+			drawCustomInput(screen, titleItems, selected, customCfg, inputBuffer, errorMsg, opts)
 			menuCount = 5
 		}
 		drawHelpHint(screen, opts)
@@ -224,19 +233,13 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 				}
 			case tcell.KeyUp:
 				switch page {
-				case PageMain, PageOptions:
+				case PageMain, PageOptions, PageCustomInput:
 					selected = (selected - 1 + menuCount) % menuCount
-				case PageCustomInput:
-					fieldIndex = (fieldIndex - 1 + menuCount) % menuCount
-					inputBuffer = ""
 				}
 			case tcell.KeyDown:
 				switch page {
-				case PageMain, PageOptions:
+				case PageMain, PageOptions, PageCustomInput:
 					selected = (selected + 1) % menuCount
-				case PageCustomInput:
-					fieldIndex = (fieldIndex + 1) % menuCount
-					inputBuffer = ""
 				}
 			case tcell.KeyLeft:
 				switch page {
@@ -244,10 +247,8 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					switch selected {
 					case 0:
 						diffIndex = (diffIndex - 1 + len(difficulties)) % len(difficulties)
-						opts.Difficulty = DifficultyMap[difficulties[diffIndex]]
 					case 1:
 						diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
-						opts.Difficulty = DifficultyMap[difficultiesNG[diffNGIndex]]
 					}
 				case PageOptions:
 					switch selected {
@@ -258,6 +259,15 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					case 1:
 						opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
 					}
+				case PageCustomInput:
+					switch selected {
+					case 0:
+						rowsIndex = (rowsIndex - 1 + len(rowsOptions)) % len(rowsOptions)
+						customCfg.Rows = rowsOptions[rowsIndex]
+					case 1:
+						colsIndex = (colsIndex - 1 + len(colsOptions)) % len(colsOptions)
+						customCfg.Cols = colsOptions[colsIndex]
+					}
 				}
 			case tcell.KeyRight:
 				switch page {
@@ -265,10 +275,8 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					switch selected {
 					case 0:
 						diffIndex = (diffIndex + 1) % len(difficulties)
-						opts.Difficulty = DifficultyMap[difficulties[diffIndex]]
 					case 1:
 						diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
-						opts.Difficulty = DifficultyMap[difficultiesNG[diffNGIndex]]
 					}
 				case PageOptions:
 					switch selected {
@@ -278,6 +286,15 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					// Border style
 					case 1:
 						opts.BorderStyle = (opts.BorderStyle + 1) % 2
+					}
+				case PageCustomInput:
+					switch selected {
+					case 0:
+						rowsIndex = (rowsIndex + 1) % len(rowsOptions)
+						customCfg.Rows = rowsOptions[rowsIndex]
+					case 1:
+						colsIndex = (colsIndex + 1) % len(colsOptions)
+						customCfg.Cols = colsOptions[colsIndex]
 					}
 				}
 			case tcell.KeyEnter:
@@ -319,7 +336,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 						selected = 0
 					}
 				case PageCustomInput:
-					switch fieldIndex {
+					switch selected {
 					// Start
 					case 3:
 						_, err := GenerateBoard(customCfg)
@@ -339,12 +356,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 						if inputBuffer != "" {
 							val, err := strconv.Atoi(inputBuffer)
 							if err == nil {
-								switch fieldIndex {
-								case 0:
-									customCfg.Rows = val
-								case 1:
-									customCfg.Cols = val
-								case 2:
+								if selected == 2 {
 									customCfg.BombCount = val
 								}
 							} else {
@@ -366,22 +378,28 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 				}
 			case tcell.KeyRune:
 				r := ev.Rune()
-				if page == PageCustomInput && unicode.IsDigit(r) {
+				if page == PageCustomInput && selected == 2 && unicode.IsDigit(r) {
 					inputBuffer += string(r)
 				} else {
 					switch r {
 					case 'w':
-						if page == PageMain || page == PageOptions {
+						if page == PageMain || page == PageOptions || page == PageCustomInput {
 							selected = (selected - 1 + menuCount) % menuCount
 						}
 					case 's':
-						if page == PageMain || page == PageOptions {
+						if page == PageMain || page == PageOptions || page == PageCustomInput {
 							selected = (selected + 1) % menuCount
 						}
 					case 'a':
-						if page == PageMain && (selected == 0 || selected == 1) {
-							diffIndex = (diffIndex - 1 + len(difficulties)) % len(difficulties)
-						} else if page == PageOptions {
+						switch page {
+						case PageMain:
+							switch selected {
+							case 0:
+								diffIndex = (diffIndex - 1 + len(difficulties)) % len(difficulties)
+							case 1:
+								diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
+							}
+						case PageOptions:
 							switch selected {
 							// Show inner borders
 							case 0:
@@ -390,11 +408,26 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 							case 1:
 								opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
 							}
+						case PageCustomInput:
+							switch selected {
+							case 0:
+								rowsIndex = (rowsIndex - 1 + len(rowsOptions)) % len(rowsOptions)
+								customCfg.Rows = rowsOptions[rowsIndex]
+							case 1:
+								colsIndex = (colsIndex - 1 + len(colsOptions)) % len(colsOptions)
+								customCfg.Cols = colsOptions[colsIndex]
+							}
 						}
 					case 'd':
-						if page == PageMain && (selected == 0 || selected == 1) {
-							diffIndex = (diffIndex + 1) % len(difficulties)
-						} else if page == PageOptions {
+						switch page {
+						case PageMain:
+							switch selected {
+							case 0:
+								diffIndex = (diffIndex + 1) % len(difficulties)
+							case 1:
+								diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
+							}
+						case PageOptions:
 							switch selected {
 							// Show inner borders
 							case 0:
@@ -402,6 +435,15 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 							// Border style
 							case 1:
 								opts.BorderStyle = (opts.BorderStyle + 1) % 2
+							}
+						case PageCustomInput:
+							switch selected {
+							case 0:
+								rowsIndex = (rowsIndex + 1) % len(rowsOptions)
+								customCfg.Rows = rowsOptions[rowsIndex]
+							case 1:
+								colsIndex = (colsIndex + 1) % len(colsOptions)
+								customCfg.Cols = colsOptions[colsIndex]
 							}
 						}
 					case 'y':
