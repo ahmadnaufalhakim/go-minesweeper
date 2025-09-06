@@ -420,6 +420,10 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 							// Border style
 							case 1:
 								opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
+							// Background
+							case 2:
+								bgIndex = (bgIndex - 1 + len(bgs)) % len(bgs)
+								opts.Background = bgs[bgIndex]
 							}
 						case PageCustomInput:
 							switch selected {
@@ -448,6 +452,9 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 							// Border style
 							case 1:
 								opts.BorderStyle = (opts.BorderStyle + 1) % 2
+							case 2:
+								bgIndex = (bgIndex + 1) % len(bgs)
+								opts.Background = bgs[bgIndex]
 							}
 						case PageCustomInput:
 							switch selected {
