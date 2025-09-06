@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -85,8 +86,9 @@ func drawOptionsMenu(screen tcell.Screen, titleItems []string, selected int, opt
 	titleHeight := len(titleItems)
 
 	menuItems := []string{
-		fmt.Sprintf("Show inner borders: %v", opts.ShowInnerBorders),
-		fmt.Sprintf("Border style: %v", opts.BorderStyle),
+		fmt.Sprintf("Show inner borders: <%v>", opts.ShowInnerBorders),
+		fmt.Sprintf("Border style: <%v>", opts.BorderStyle),
+		fmt.Sprintf("Background: <%v>", opts.Background),
 		"Back",
 	}
 	menuHeight := (len(menuItems)+1)*2 - 1
@@ -176,6 +178,8 @@ func drawHelpHint(screen tcell.Screen, opts *GameOptions) {
 func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, DifficultyConfig, bool) {
 	page := PageMain
 	titleItems := assets.RandomTitle()
+	bgs := append([]string{"none"}, assets.ListBackgrounds()...)
+	bgIndex := slices.Index(bgs, opts.Background)
 	selected := 0
 	difficulties := []string{"beginner", "intermediate", "advanced", "expert", "insane", "custom"}
 	difficultiesNG := []string{"beginner", "intermediate", "advanced", "expert", "insane"}
@@ -200,13 +204,14 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 
 	for {
 		screen.Clear()
+		DrawBackground(screen, bgs[bgIndex], false)
 		switch page {
 		case PageMain:
 			drawMainMenu(screen, titleItems, selected, difficulties[diffIndex], difficultiesNG[diffNGIndex], opts)
 			menuCount = 5
 		case PageOptions:
 			drawOptionsMenu(screen, titleItems, selected, opts)
-			menuCount = 3
+			menuCount = 4
 		case PageCredits:
 			drawCredits(screen, titleItems, opts)
 		case PageQuitConfirm:
@@ -258,6 +263,10 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					// Border style
 					case 1:
 						opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
+					// Background
+					case 2:
+						bgIndex = (bgIndex - 1 + len(bgs)) % len(bgs)
+						opts.Background = bgs[bgIndex]
 					}
 				case PageCustomInput:
 					switch selected {
@@ -286,6 +295,10 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					// Border style
 					case 1:
 						opts.BorderStyle = (opts.BorderStyle + 1) % 2
+					// Background
+					case 2:
+						bgIndex = (bgIndex + 1) % len(bgs)
+						opts.Background = bgs[bgIndex]
 					}
 				case PageCustomInput:
 					switch selected {
@@ -327,11 +340,11 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					case 3:
 						page = PageCredits
 					// Quit
-					case 4:
+					case menuCount - 1:
 						page = PageQuitConfirm
 					}
 				case PageOptions:
-					if selected == 2 {
+					if selected == menuCount-1 {
 						page = PageMain
 						selected = 0
 					}
@@ -347,7 +360,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 							return StatePlaying, opts, customCfg, playingNG
 						}
 					// Back
-					case 4:
+					case menuCount - 1:
 						page = PageMain
 						selected = 0
 						inputBuffer = ""

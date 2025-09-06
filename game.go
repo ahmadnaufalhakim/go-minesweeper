@@ -10,6 +10,7 @@ type GameOptions struct {
 	Style            tcell.Style
 	BorderStyle      BorderStyle
 	ShowInnerBorders bool
+	Background       string
 	Difficulty       DifficultyConfig
 }
 
@@ -18,6 +19,7 @@ func NewGameOptions() *GameOptions {
 		Style:            DefaultStyle,
 		BorderStyle:      DefaultBorder,
 		ShowInnerBorders: false,
+		Background:       "none",
 		Difficulty:       DifficultyMap["beginner"],
 		//TODO: debug for `ShowInnerBorders = true`
 	}
@@ -37,6 +39,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 	var lastMouseButtons tcell.ButtonMask
 	for playing {
 		screen.Clear()
+		DrawBackground(screen, opts.Background, m.IsGameOver && !m.IsWon)
 		m.Draw(screen, opts.BorderStyle, opts.ShowInnerBorders, mScreenX, mScreenY)
 		if m.IsGameOver {
 			var message string
