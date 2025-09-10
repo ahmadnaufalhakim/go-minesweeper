@@ -10,12 +10,31 @@ import (
 const SAMPLERATE = beep.SampleRate(44100)
 
 var (
-	mixer = &beep.Mixer{}
+	mixer  = &beep.Mixer{}
+	format = beep.Format{
+		SampleRate:  SAMPLERATE,
+		NumChannels: 2,
+		Precision:   2,
+	}
+	bombBuf      *beep.Buffer
+	cellClearBuf *beep.Buffer
+	winBuf       *beep.Buffer
 )
 
 func InitSoundSystem() {
+	// Set up the speaker
 	speaker.Init(SAMPLERATE, SAMPLERATE.N(time.Second/10))
 	speaker.Play(mixer)
+
+	// Pre-render each sound into a buffer
+	bombBuf = beep.NewBuffer(format)
+	bombBuf.Append(NoiseWave(200 * time.Millisecond))
+
+	cellClearBuf = beep.NewBuffer(format)
+	cellClearBuf.Append(GlideSineWave(220, 880, 150*time.Millisecond))
+
+	winBuf = beep.NewBuffer(format)
+	winBuf.Append(GlideSineWave(880, 220, 200*time.Millisecond))
 }
 
 func PlaySound(s beep.Streamer) {
@@ -23,13 +42,13 @@ func PlaySound(s beep.Streamer) {
 }
 
 func BombSound() beep.Streamer {
-	return NoiseWave(200 * time.Millisecond)
+	return bombBuf.Streamer(0, bombBuf.Len())
 }
 
 func CellClearSound() beep.Streamer {
-	return GlideSineWave(220, 880, 200*time.Millisecond)
+	return cellClearBuf.Streamer(0, cellClearBuf.Len())
 }
 
 func WinSound() beep.Streamer {
-	return GlideSineWave(880, 220, 200*time.Millisecond)
+	return winBuf.Streamer(0, winBuf.Len())
 }
