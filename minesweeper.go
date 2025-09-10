@@ -116,30 +116,30 @@ var directions = [8][2]int{
 	{1, -1}, {1, 0}, {1, 1},
 }
 
-func (m *Minesweeper) Reveal(row, col int, userClick bool) {
+func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
 	if m.IsGameOver {
-		return
+		return false
 	}
 	cell := &m.Grid[row][col]
 
 	// Don't reveal flagged cell when user clicked
 	if userClick && cell.Flagged {
-		return
+		return false
 	}
 
 	// Cell with bomb is clicked/revealed
 	if cell.Value == BOMB {
 		cell.Revealed = true
 		m.IsGameOver = true
-		return
+		return true
 	}
 
 	// Cell is already revealed
 	if cell.Revealed {
 		if userClick {
-			m.Chord(row, col)
+			return m.Chord(row, col)
 		}
-		return
+		return false
 	}
 
 	// Normal cell reveal
@@ -148,6 +148,7 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 	if m.RevealedCount == m.Rows*m.Cols-m.BombCount {
 		m.IsGameOver = true
 		m.IsWon = true
+		return true
 	}
 
 	// Flood-fill expansion
@@ -161,10 +162,14 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 			m.Reveal(newRow, newCol, false)
 		}
 	}
+
+	return true
 }
 
-func (m *Minesweeper) Chord(row, col int) {
+func (m *Minesweeper) Chord(row, col int) bool {
 	cell := &m.Grid[row][col]
+	ok := false
+
 	if cell.Revealed && cell.Value > 0 {
 		unflaggedCells := make([][2]int, 0, 8)
 		flaggedCells := make([][2]int, 0, 8)
@@ -186,10 +191,14 @@ func (m *Minesweeper) Chord(row, col int) {
 		if len(flaggedCells) == cell.Value {
 			for _, pos := range unflaggedCells {
 				r, c := pos[0], pos[1]
-				m.Reveal(r, c, false)
+				if m.Reveal(r, c, false) {
+					ok = true
+				}
 			}
 		}
 	}
+
+	return ok
 }
 
 func (m *Minesweeper) Flag(row, col int) {

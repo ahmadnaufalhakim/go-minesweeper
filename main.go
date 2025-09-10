@@ -39,6 +39,7 @@ func main() {
 	screen.SetStyle(DefaultStyle)
 
 	gameOptions := NewGameOptions()
+	InitSoundSystem()
 
 	for {
 		state, gameOptions, cfg, ng := RunMenu(screen, gameOptions)
