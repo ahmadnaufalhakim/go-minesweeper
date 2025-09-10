@@ -8,6 +8,7 @@ import (
 	"github.com/gopxl/beep"
 )
 
+// Generate a random wave sample (bzz sound)
 func NoiseWave(dur time.Duration) beep.Streamer {
 	totalSamples := SAMPLERATE.N(dur)
 	var sampleIndex int
@@ -30,6 +31,30 @@ func NoiseWave(dur time.Duration) beep.Streamer {
 	})
 }
 
+// Generates a pure sine wave with given frequency and duration
+func SineWave(freq float64, dur time.Duration) beep.Streamer {
+	totalSamples := SAMPLERATE.N(dur)
+	var sampleIndex int
+
+	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
+		for i := range samples {
+			// Stop the stream when finished
+			if sampleIndex >= totalSamples {
+				return i, false
+			}
+
+			t := float64(sampleIndex) / float64(SAMPLERATE)
+			val := math.Sin(2 * math.Pi * freq * t)
+			samples[i][0], samples[i][1] = val, val
+
+			sampleIndex++
+		}
+
+		return len(samples), true
+	})
+}
+
+// Generates a gliding sine wave from `startFreq` to `endFreq`
 func GlideSineWave(startFreq, endFreq float64, dur time.Duration) beep.Streamer {
 	totalSamples := SAMPLERATE.N(dur)
 	var sampleIndex int
@@ -60,4 +85,16 @@ func GlideSineWave(startFreq, endFreq float64, dur time.Duration) beep.Streamer 
 
 		return len(samples), true
 	})
+}
+
+// Generates a chord relative to the root frequency.
+// intervals = semitone offsets (e.g., 0, 4, 7 for major triad)
+func ChordWave(root float64, intervals []int, dur time.Duration) beep.Streamer {
+	streamers := make([]beep.Streamer, len(intervals))
+	for i, semitone := range intervals {
+		freq := root * math.Pow(2, float64(semitone)/12.0)
+		streamers[i] = GlideSineWave(freq, freq, dur)
+	}
+
+	return beep.Mix(streamers...)
 }
