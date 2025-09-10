@@ -34,7 +34,7 @@ func InitSoundSystem() {
 	cellClearBuf.Append(GlideSineWave(220, 880, 150*time.Millisecond))
 
 	winBuf = beep.NewBuffer(format)
-	winBuf.Append(GlideSineWave(880, 220, 200*time.Millisecond))
+	winBuf.Append(ChordWave(440, []int{3, 7, 10}, 150*time.Millisecond))
 }
 
 func PlaySound(s beep.Streamer) {
