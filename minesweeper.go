@@ -142,6 +142,7 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 		return
 	}
 
+	// Normal cell reveal
 	cell.Revealed = true
 	m.RevealedCount++
 	if m.RevealedCount == m.Rows*m.Cols-m.BombCount {
@@ -149,6 +150,7 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 		m.IsWon = true
 	}
 
+	// Flood-fill expansion
 	if cell.Value == CLEAR {
 		for _, direction := range directions {
 			newRow := row + direction[0]
