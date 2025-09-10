@@ -116,42 +116,42 @@ var directions = [8][2]int{
 	{1, -1}, {1, 0}, {1, 1},
 }
 
-func (m *Minesweeper) Reveal(row, col int, userClick bool) {
+func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
 	if m.IsGameOver {
-		return
+		return false
 	}
 	cell := &m.Grid[row][col]
-	if userClick {
-		if cell.Flagged {
-			return
-		}
-		if cell.Revealed {
-			m.Chord(row, col)
-			return
-		}
-		if cell.Value == BOMB {
-			cell.Revealed = true
-			m.IsGameOver = true
-			return
-		}
-	} else {
-		if cell.Revealed {
-			return
-		}
-		if cell.Value == BOMB {
-			cell.Revealed = true
-			m.IsGameOver = true
-			return
-		}
+
+	// Don't reveal flagged cell when user clicked
+	if userClick && cell.Flagged {
+		return false
 	}
 
+	// Cell with bomb is clicked/revealed
+	if cell.Value == BOMB {
+		cell.Revealed = true
+		m.IsGameOver = true
+		return true
+	}
+
+	// Cell is already revealed
+	if cell.Revealed {
+		if userClick {
+			return m.Chord(row, col)
+		}
+		return false
+	}
+
+	// Normal cell reveal
 	cell.Revealed = true
 	m.RevealedCount++
 	if m.RevealedCount == m.Rows*m.Cols-m.BombCount {
 		m.IsGameOver = true
 		m.IsWon = true
+		return true
 	}
 
+	// Flood-fill expansion
 	if cell.Value == CLEAR {
 		for _, direction := range directions {
 			newRow := row + direction[0]
@@ -162,10 +162,14 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 			m.Reveal(newRow, newCol, false)
 		}
 	}
+
+	return true
 }
 
-func (m *Minesweeper) Chord(row, col int) {
+func (m *Minesweeper) Chord(row, col int) bool {
 	cell := &m.Grid[row][col]
+	ok := false
+
 	if cell.Revealed && cell.Value > 0 {
 		unflaggedCells := make([][2]int, 0, 8)
 		flaggedCells := make([][2]int, 0, 8)
@@ -187,10 +191,14 @@ func (m *Minesweeper) Chord(row, col int) {
 		if len(flaggedCells) == cell.Value {
 			for _, pos := range unflaggedCells {
 				r, c := pos[0], pos[1]
-				m.Reveal(r, c, false)
+				if m.Reveal(r, c, false) {
+					ok = true
+				}
 			}
 		}
 	}
+
+	return ok
 }
 
 func (m *Minesweeper) Flag(row, col int) {

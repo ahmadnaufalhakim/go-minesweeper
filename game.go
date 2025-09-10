@@ -93,7 +93,17 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 					if ok {
 						switch lastMouseButtons {
 						case tcell.Button1:
-							m.Reveal(row, col, true)
+							if ok := m.Reveal(row, col, true); ok {
+								if m.IsGameOver {
+									if m.IsWon {
+										PlaySound(WinSound())
+									} else {
+										PlaySound(BombSound())
+									}
+								} else {
+									PlaySound(CellClearSound())
+								}
+							}
 						case tcell.Button2:
 							m.Flag(row, col)
 						}
