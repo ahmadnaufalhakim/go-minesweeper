@@ -121,28 +121,25 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) {
 		return
 	}
 	cell := &m.Grid[row][col]
-	if userClick {
-		if cell.Flagged {
-			return
-		}
-		if cell.Revealed {
+
+	// Don't reveal flagged cell when user clicked
+	if userClick && cell.Flagged {
+		return
+	}
+
+	// Cell with bomb is clicked/revealed
+	if cell.Value == BOMB {
+		cell.Revealed = true
+		m.IsGameOver = true
+		return
+	}
+
+	// Cell is already revealed
+	if cell.Revealed {
+		if userClick {
 			m.Chord(row, col)
-			return
 		}
-		if cell.Value == BOMB {
-			cell.Revealed = true
-			m.IsGameOver = true
-			return
-		}
-	} else {
-		if cell.Revealed {
-			return
-		}
-		if cell.Value == BOMB {
-			cell.Revealed = true
-			m.IsGameOver = true
-			return
-		}
+		return
 	}
 
 	cell.Revealed = true
