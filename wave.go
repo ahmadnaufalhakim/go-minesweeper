@@ -55,6 +55,48 @@ func SineWave(freq float64, dur time.Duration) beep.Streamer {
 	})
 }
 
+// Generates a sine wave with optional vibrato (frequency modulation)
+// and tremolo (amplitude modulation).
+//
+// Vibrato: adds `vibratoDepth * sin(2π * vibratoRate * t)` to
+// the baseFreq
+//
+// Tremolo: multiplies `1 + tremoloDepth * sin(2π * tremoloRate * t)` to
+// the baseFreq
+func ModSineWave(
+	baseFreq float64, dur time.Duration,
+	vibratoDepth, vibratoRate float64,
+	tremoloDepth, tremoloRate float64,
+) beep.Streamer {
+	totalSamples := SAMPLERATE.N(dur)
+	var sampleIndex int
+
+	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
+		for i := range samples {
+			// Stop the stream when finished
+			if sampleIndex >= totalSamples {
+				return i, false
+			}
+
+			t := float64(sampleIndex) / float64(SAMPLERATE)
+
+			// Vibrato (frequency modulation)
+			freqMod := vibratoDepth * math.Sin(2*math.Pi*vibratoRate*t)
+			freq := baseFreq + freqMod
+
+			// Tremolo (amplitude modulation)
+			ampMod := 1 + tremoloDepth*math.Sin(2*math.Pi*tremoloRate*t)
+
+			val := math.Sin(2*math.Pi*freq*t) * ampMod
+			samples[i][0], samples[i][1] = val, val
+
+			sampleIndex++
+		}
+
+		return len(samples), true
+	})
+}
+
 // Generates a gliding sine wave from `startFreq` to `endFreq`
 func GlideSineWave(startFreq, endFreq float64, dur time.Duration) beep.Streamer {
 	totalSamples := SAMPLERATE.N(dur)
