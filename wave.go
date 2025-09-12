@@ -105,3 +105,8 @@ func ChordWave(root float64, intervals []int, dur time.Duration) beep.Streamer {
 
 	return beep.Mix(streamers...)
 }
+
+// Generate a musical phrase, i.e. arpeggios, chords, combinations
+func Phrase(streamers ...beep.Streamer) beep.Streamer {
+	return beep.Seq(streamers...)
+}
