@@ -10,6 +10,14 @@ import (
 	"github.com/gopxl/beep/generators"
 )
 
+type DistortionType int
+
+const (
+	HardClip DistortionType = iota
+	SoftClip
+	BitCrush
+)
+
 // Generate a random wave sample (bzz sound)
 func NoiseWave(dur time.Duration) beep.Streamer {
 	totalSamples := SAMPLERATE.N(dur)
@@ -128,6 +136,42 @@ func GlideSineWave(startFreq, endFreq float64, dur time.Duration) beep.Streamer 
 		}
 
 		return len(samples), true
+	})
+}
+
+func clip(val float64) float64 {
+	if val > 1 {
+		return 1
+	} else if val < -1 {
+		return -1
+	}
+	return val
+}
+
+func Distort(source beep.Streamer, dtype DistortionType, param float64) beep.Streamer {
+	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
+		n, ok = source.Stream(samples)
+		for i := 0; i < n; i++ {
+			switch dtype {
+			case HardClip:
+				// param -> gain
+				valL := samples[i][0] * param
+				valR := samples[i][1] * param
+				samples[i][0] = clip(valL)
+				samples[i][1] = clip(valR)
+			case SoftClip:
+				// param -> gain
+				samples[i][0] = math.Tanh(samples[i][0] * param)
+				samples[i][1] = math.Tanh(samples[i][1] * param)
+			case BitCrush:
+				// param -> bit depth
+				levels := math.Pow(2, param)
+				samples[i][0] = math.Round(samples[i][0]*levels) / levels
+				samples[i][1] = math.Round(samples[i][1]*levels) / levels
+			}
+		}
+
+		return n, ok
 	})
 }
 
