@@ -142,7 +142,7 @@ func ChordWave(root float64, intervals []int, dur time.Duration) beep.Streamer {
 	streamers := make([]beep.Streamer, len(intervals))
 	for i, semitone := range intervals {
 		freq := root * math.Pow(2, float64(semitone)/12.0)
-		streamers[i] = GlideSineWave(freq, freq, dur)
+		streamers[i] = SineWave(freq, dur)
 	}
 
 	return beep.Mix(streamers...)
