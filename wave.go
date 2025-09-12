@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gopxl/beep"
+	"github.com/gopxl/beep/generators"
 )
 
 // Generate a random wave sample (bzz sound)
@@ -87,8 +88,14 @@ func GlideSineWave(startFreq, endFreq float64, dur time.Duration) beep.Streamer 
 	})
 }
 
+// Generates silence. That's it.
+func Rest(dur time.Duration) beep.Streamer {
+	return generators.Silence(SAMPLERATE.N(dur))
+}
+
 // Generates a chord relative to the root frequency.
-// intervals = semitone offsets (e.g., 0, 4, 7 for major triad)
+//
+// intervals = semitone offsets (e.g., [0,4,7] for major triad; [0,3,7] for minor triad)
 func ChordWave(root float64, intervals []int, dur time.Duration) beep.Streamer {
 	streamers := make([]beep.Streamer, len(intervals))
 	for i, semitone := range intervals {
