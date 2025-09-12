@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gopxl/beep"
+	"github.com/gopxl/beep/effects"
 	"github.com/gopxl/beep/generators"
 )
 
@@ -145,7 +146,40 @@ func ChordWave(root float64, intervals []int, dur time.Duration) beep.Streamer {
 		streamers[i] = SineWave(freq, dur)
 	}
 
-	return beep.Mix(streamers...)
+	mixed := beep.Mix(streamers...)
+	volumeScale := 1.0 / math.Sqrt(float64(len(intervals)))
+	return &effects.Volume{
+		Streamer: mixed,
+		Base:     2,
+		Volume:   math.Log2(volumeScale),
+		Silent:   false,
+	}
+}
+
+// Generates a modulated chord relative to the root frequency.
+func ModChordWave(
+	root float64, intervals []int, dur time.Duration,
+	vibratoDepth, vibratoRate float64,
+	tremoloDepth, tremoloRate float64,
+) beep.Streamer {
+	streamers := make([]beep.Streamer, len(intervals))
+	for i, semitone := range intervals {
+		freq := root * math.Pow(2, float64(semitone)/12.0)
+		streamers[i] = ModSineWave(
+			freq, dur,
+			vibratoDepth, vibratoRate,
+			tremoloDepth, tremoloRate,
+		)
+	}
+
+	mixed := beep.Mix(streamers...)
+	volumeScale := 1.0 / math.Sqrt(float64(len(intervals)))
+	return &effects.Volume{
+		Streamer: mixed,
+		Base:     2,
+		Volume:   math.Log2(volumeScale),
+		Silent:   false,
+	}
 }
 
 // Generate a musical phrase, i.e. arpeggios, chords, combinations
