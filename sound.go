@@ -40,10 +40,26 @@ func InitSoundSystem() {
 		ModSineWave(E4, 150*time.Millisecond, 2.5, 3, 0, 0),
 		ModSineWave(G4, 150*time.Millisecond, 2.5, 3, 0, 0),
 		ModSineWave(C5, 350*time.Millisecond, 2.5, 3, 0, 0),
+
+		// Distort(SineWave(C4, 150*time.Millisecond), HardClip, 2),
+		// Distort(SineWave(E4, 150*time.Millisecond), HardClip, 2),
+		// Distort(SineWave(G4, 150*time.Millisecond), HardClip, 2),
+		// Distort(SineWave(C5, 350*time.Millisecond), HardClip, 2),
+
+		// Distort(SineWave(C4, 150*time.Millisecond), SoftClip, 2),
+		// Distort(SineWave(E4, 150*time.Millisecond), SoftClip, 2),
+		// Distort(SineWave(G4, 150*time.Millisecond), SoftClip, 2),
+		// Distort(SineWave(C5, 350*time.Millisecond), SoftClip, 2),
+
+		// Distort(SineWave(C4, 150*time.Millisecond), BitCrush, 2),
+		// Distort(SineWave(E4, 150*time.Millisecond), BitCrush, 2),
+		// Distort(SineWave(G4, 150*time.Millisecond), BitCrush, 2),
+		// Distort(SineWave(C5, 350*time.Millisecond), BitCrush, 2),
+
 		Rest(300*time.Millisecond),
-		ModChordWave(C4, []int{0, 7}, 50*time.Millisecond, 1, 1.5, 0, 0),
+		ModChordWave(C4, []int{0, 7}, 50*time.Millisecond, 1, 1.5, 1.125, 1),
 		Rest(50*time.Millisecond),
-		ModChordWave(C4, []int{0, 7}, 400*time.Millisecond, 1, 1.5, 0, 0),
+		ModChordWave(C4, []int{0, 7}, 400*time.Millisecond, 1, 1.5, 1.125, 1),
 	)
 
 	// Append sound waves to sound buffers
