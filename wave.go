@@ -110,7 +110,6 @@ func ModSineWave(
 func GlideSineWave(startFreq, endFreq float64, dur time.Duration) beep.Streamer {
 	totalSamples := SAMPLERATE.N(dur)
 	var sampleIndex int
-	phase := .0
 
 	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
 		for i := range samples {
@@ -125,13 +124,12 @@ func GlideSineWave(startFreq, endFreq float64, dur time.Duration) beep.Streamer 
 			// Interpolate frequency linearly
 			freq := startFreq + (endFreq-startFreq)*progress
 
-			// Compute phase increment per sample
-			inc := 2 * math.Pi * freq / float64(SAMPLERATE)
+			// Compute absolute time in seconds
+			t := float64(sampleIndex) / float64(SAMPLERATE)
 
-			val := math.Sin(phase)
+			val := math.Sin(2 * math.Pi * freq * t)
 			samples[i][0], samples[i][1] = val, val
 
-			phase += inc
 			sampleIndex++
 		}
 
