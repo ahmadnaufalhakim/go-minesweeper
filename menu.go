@@ -189,6 +189,10 @@ func drawHelpHint(screen tcell.Screen, opts *GameOptions) {
 	DrawString(screen, w-len(message)-1, h-1, opts.Style, message)
 }
 
+func moveSelection(selected *int, delta, menuCount int) {
+	*selected = (*selected + delta + menuCount) % menuCount
+}
+
 func adjustOptions(selected, delta int, bgs []string, volPercentages []int, opts *GameOptions) {
 	switch selected {
 	case 0:
@@ -263,12 +267,12 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 			case tcell.KeyUp:
 				switch page {
 				case PageMain, PageOptions, PageCustomInput:
-					selected = (selected - 1 + menuCount) % menuCount
+					moveSelection(&selected, -1, menuCount)
 				}
 			case tcell.KeyDown:
 				switch page {
 				case PageMain, PageOptions, PageCustomInput:
-					selected = (selected + 1) % menuCount
+					moveSelection(&selected, 1, menuCount)
 				}
 			case tcell.KeyLeft:
 				switch page {
@@ -398,12 +402,14 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 				} else {
 					switch r {
 					case 'w':
-						if page == PageMain || page == PageOptions || page == PageCustomInput {
-							selected = (selected - 1 + menuCount) % menuCount
+						switch page {
+						case PageMain, PageOptions, PageCustomInput:
+							moveSelection(&selected, -1, menuCount)
 						}
 					case 's':
-						if page == PageMain || page == PageOptions || page == PageCustomInput {
-							selected = (selected + 1) % menuCount
+						switch page {
+						case PageMain, PageOptions, PageCustomInput:
+							moveSelection(&selected, 1, menuCount)
 						}
 					case 'a':
 						switch page {
