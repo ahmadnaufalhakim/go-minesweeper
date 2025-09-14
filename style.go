@@ -7,6 +7,7 @@ type BorderStyle int
 const (
 	BorderThin BorderStyle = iota
 	BorderThick
+	borderStyleCount
 )
 
 var DefaultBorder = BorderThin
