@@ -16,6 +16,7 @@ const (
 	HardClip DistortionType = iota
 	SoftClip
 	BitCrush
+	distortionTypeCount
 )
 
 // Generate a random wave sample (bzz sound)

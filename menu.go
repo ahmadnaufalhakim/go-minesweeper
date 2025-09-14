@@ -18,6 +18,7 @@ const (
 	PageCredits
 	PageQuitConfirm
 	PageCustomInput
+	menuPageCount
 )
 
 func drawTitleItems(
