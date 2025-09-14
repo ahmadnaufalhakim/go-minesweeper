@@ -271,24 +271,6 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					}
 				case PageOptions:
 					adjustOptions(selected, -1, bgs, volPercentages, opts)
-
-					// switch selected {
-					// // Show inner borders
-					// case 0:
-					// 	opts.ShowInnerBorders = !opts.ShowInnerBorders
-					// // Border style
-					// case 1:
-					// 	opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
-					// // Background
-					// case 2:
-					// 	bgIndex = (bgIndex - 1 + len(bgs)) % len(bgs)
-					// 	opts.Background = bgs[bgIndex]
-					// // Volume
-					// case 3:
-					// 	volIndex = (volIndex - 1 + len(volPercentages)) % len(volPercentages)
-					// 	opts.Volume = volPercentages[volIndex]
-					// 	SetVolume(opts.Volume)
-					// }
 				case PageCustomInput:
 					switch selected {
 					case 0:
@@ -310,24 +292,6 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					}
 				case PageOptions:
 					adjustOptions(selected, 1, bgs, volPercentages, opts)
-
-					// switch selected {
-					// // Show inner borders
-					// case 0:
-					// 	opts.ShowInnerBorders = !opts.ShowInnerBorders
-					// // Border style
-					// case 1:
-					// 	opts.BorderStyle = (opts.BorderStyle + 1) % 2
-					// // Background
-					// case 2:
-					// 	bgIndex = (bgIndex + 1) % len(bgs)
-					// 	opts.Background = bgs[bgIndex]
-					// // Volume
-					// case 3:
-					// 	volIndex = (volIndex + 1) % len(volPercentages)
-					// 	opts.Volume = volPercentages[volIndex]
-					// 	SetVolume(opts.Volume)
-					// }
 				case PageCustomInput:
 					switch selected {
 					case 0:
@@ -442,24 +406,6 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 							}
 						case PageOptions:
 							adjustOptions(selected, -1, bgs, volPercentages, opts)
-
-							// switch selected {
-							// // Show inner borders
-							// case 0:
-							// 	opts.ShowInnerBorders = !opts.ShowInnerBorders
-							// // Border style
-							// case 1:
-							// 	opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
-							// // Background
-							// case 2:
-							// 	bgIndex = (bgIndex - 1 + len(bgs)) % len(bgs)
-							// 	opts.Background = bgs[bgIndex]
-							// // Volume
-							// case 3:
-							// 	volIndex = (volIndex - 1 + len(volPercentages)) % len(volPercentages)
-							// 	opts.Volume = volPercentages[volIndex]
-							// 	SetVolume(opts.Volume)
-							// }
 						case PageCustomInput:
 							switch selected {
 							case 0:
@@ -482,22 +428,6 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 						case PageOptions:
 							adjustOptions(selected, 1, bgs, volPercentages, opts)
 
-							// switch selected {
-							// // Show inner borders
-							// case 0:
-							// 	opts.ShowInnerBorders = !opts.ShowInnerBorders
-							// // Border style
-							// case 1:
-							// 	opts.BorderStyle = (opts.BorderStyle + 1) % 2
-							// case 2:
-							// 	bgIndex = (bgIndex + 1) % len(bgs)
-							// 	opts.Background = bgs[bgIndex]
-							// // Volume
-							// case 3:
-							// 	volIndex = (volIndex + 1) % len(volPercentages)
-							// 	opts.Volume = volPercentages[volIndex]
-							// 	SetVolume(opts.Volume)
-							// }
 						case PageCustomInput:
 							switch selected {
 							case 0:
