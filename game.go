@@ -69,22 +69,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 		screen.Clear()
 		DrawBackground(screen, opts.Background, m.IsGameOver && !m.IsWon)
 		m.Draw(screen, opts.BorderStyle, opts.ShowInnerBorders, mScreenX, mScreenY)
-		if m.IsGameOver {
-			var message string
-			if m.IsWon {
-				message = "You win!"
-				DrawCentered(screen, mScreenY-3, opts.Style, "😎")
-			} else {
-				message = "You lose!"
-				DrawCentered(screen, mScreenY-3, opts.Style, "😭")
-			}
-			DrawCentered(screen, mScreenY-2, opts.Style, message)
-			DrawCentered(screen, mScreenY-1, opts.Style, "Press 'r' to create a new board, 'q' to quit to main menu.")
-		} else if lastMouseButtons == tcell.ButtonNone {
-			DrawCentered(screen, mScreenY-3, opts.Style, "🙂")
-		} else {
-			DrawCentered(screen, mScreenY-3, opts.Style, "😮")
-		}
+		m.DrawSmiley(screen, mScreenY, opts.Style, lastMouseButtons)
 		screen.Show()
 
 		ev := screen.PollEvent()
