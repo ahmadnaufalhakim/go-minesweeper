@@ -52,8 +52,10 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 			}
 			DrawCentered(screen, mScreenY-2, opts.Style, message)
 			DrawCentered(screen, mScreenY-1, opts.Style, "Press 'r' to create a new board, 'q' to quit to main menu.")
-		} else {
+		} else if lastMouseButtons == tcell.ButtonNone {
 			DrawCentered(screen, mScreenY-3, opts.Style, "🙂")
+		} else {
+			DrawCentered(screen, mScreenY-3, opts.Style, "😮")
 		}
 		screen.Show()
 
@@ -109,6 +111,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 						}
 					}
 					ox, oy = -1, -1
+					lastMouseButtons = tcell.ButtonNone
 				}
 			}
 		}
