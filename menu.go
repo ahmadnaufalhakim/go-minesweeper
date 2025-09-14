@@ -52,7 +52,7 @@ func drawMainMenu(
 	screen tcell.Screen, titleItems []string,
 	selected int, difficulty string, difficultyNG string,
 	opts *GameOptions,
-) {
+) int {
 	w, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -78,9 +78,15 @@ func drawMainMenu(
 	xNG := ((w-len(menuItems[1]))/2 - len(menuItems[1])%2) + (len(menuItems[1]) - (len(difficultyNG) + 1))
 	yNG := titleOffsetY + titleHeight + 8
 	DrawString(screen, xNG, yNG, DifficultyToStyle[difficultyNG], difficultyNG)
+
+	return len(menuItems)
 }
 
-func drawOptionsMenu(screen tcell.Screen, titleItems []string, selected int, opts *GameOptions) {
+func drawOptionsMenu(
+	screen tcell.Screen, titleItems []string,
+	selected int,
+	opts *GameOptions,
+) int {
 	_, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -99,9 +105,14 @@ func drawOptionsMenu(screen tcell.Screen, titleItems []string, selected int, opt
 
 	drawTitleItems(screen, titleItems, titleOffsetY, opts)
 	drawMenuItems(screen, selected, "⚑⚑⚑ Options  ⚑⚑⚑", menuItems, titleOffsetY+titleHeight+4, opts)
+
+	return len(menuItems)
 }
 
-func drawCredits(screen tcell.Screen, titleItems []string, opts *GameOptions) {
+func drawCredits(
+	screen tcell.Screen, titleItems []string,
+	opts *GameOptions,
+) {
 	_, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -142,7 +153,7 @@ func drawCustomInput(
 	cfg DifficultyConfig,
 	buf string, errMsg string,
 	opts *GameOptions,
-) {
+) int {
 	_, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -168,6 +179,8 @@ func drawCustomInput(
 	if errMsg != "" {
 		DrawCentered(screen, titleOffsetY+titleHeight+2+(len(menuItems)+2)*2, opts.Style, "Error: "+errMsg)
 	}
+
+	return len(menuItems)
 }
 
 func drawHelpHint(screen tcell.Screen, opts *GameOptions) {
@@ -221,18 +234,15 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 		DrawBackground(screen, bgs[opts.bgIndex], false)
 		switch page {
 		case PageMain:
-			drawMainMenu(screen, titleItems, selected, difficulties[diffIndex], difficultiesNG[diffNGIndex], opts)
-			menuCount = 5
+			menuCount = drawMainMenu(screen, titleItems, selected, difficulties[diffIndex], difficultiesNG[diffNGIndex], opts)
 		case PageOptions:
-			drawOptionsMenu(screen, titleItems, selected, opts)
-			menuCount = 5
+			menuCount = drawOptionsMenu(screen, titleItems, selected, opts)
 		case PageCredits:
 			drawCredits(screen, titleItems, opts)
 		case PageQuitConfirm:
 			drawQuitConfirm(screen, opts)
 		case PageCustomInput:
-			drawCustomInput(screen, titleItems, selected, customCfg, inputBuffer, errorMsg, opts)
-			menuCount = 5
+			menuCount = drawCustomInput(screen, titleItems, selected, customCfg, inputBuffer, errorMsg, opts)
 		}
 		drawHelpHint(screen, opts)
 		screen.Show()
