@@ -1,41 +1,40 @@
 package main
 
 import (
+	"math"
 	"time"
 
 	"github.com/gopxl/beep"
+	"github.com/gopxl/beep/effects"
 	"github.com/gopxl/beep/speaker"
 )
 
 const SAMPLERATE = beep.SampleRate(44100)
 
 var (
-	mixer  = &beep.Mixer{}
+	mixer      = &beep.Mixer{}
+	volumeCtrl = &effects.Volume{
+		Streamer: mixer,
+		Base:     2,
+		Volume:   0,
+		Silent:   false,
+	}
 	format = beep.Format{
 		SampleRate:  SAMPLERATE,
 		NumChannels: 2,
 		Precision:   2,
 	}
-	bombBuf      *beep.Buffer
-	cellClearBuf *beep.Buffer
-	winBuf       *beep.Buffer
+	sounds = make(map[string]*beep.Buffer)
 )
 
-// Setting up speaker and sound buffers
-func InitSoundSystem() {
-	// Set up the speaker
-	speaker.Init(SAMPLERATE, SAMPLERATE.N(time.Second/10))
-	speaker.Play(mixer)
+func LoadSounds() {
+	sounds["bomb"] = beep.NewBuffer(format)
+	sounds["cellClear"] = beep.NewBuffer(format)
+	sounds["win"] = beep.NewBuffer(format)
 
-	// Prepare sound buffers
-	bombBuf = beep.NewBuffer(format)
-	cellClearBuf = beep.NewBuffer(format)
-	winBuf = beep.NewBuffer(format)
-
-	// Define sound waves
-	bombStreamer := NoiseWave(150 * time.Millisecond)
-	cellClearStreamer := GlideSineWave(220, 880, 100*time.Millisecond)
-	winStreamer := Phrase(
+	sounds["bomb"].Append(NoiseWave(150 * time.Millisecond))
+	sounds["cellClear"].Append(GlideSineWave(220, 880, 100*time.Millisecond))
+	sounds["win"].Append(Phrase(
 		ModSineWave(C4, 150*time.Millisecond, 2.5, 3, 0, 0),
 		ModSineWave(E4, 150*time.Millisecond, 2.5, 3, 0, 0),
 		ModSineWave(G4, 150*time.Millisecond, 2.5, 3, 0, 0),
@@ -60,27 +59,35 @@ func InitSoundSystem() {
 		ModChordWave(C4, []int{0, 7}, 50*time.Millisecond, 1, 1.5, 1.125, 1),
 		Rest(50*time.Millisecond),
 		ModChordWave(C4, []int{0, 7}, 400*time.Millisecond, 1, 1.5, 1.125, 1),
-	)
-
-	// Append sound waves to sound buffers
-	bombBuf.Append(bombStreamer)
-	cellClearBuf.Append(cellClearStreamer)
-	winBuf.Append(winStreamer)
+	))
 }
 
-// Adding new sound to the mixer
-func PlaySound(s beep.Streamer) {
-	mixer.Add(s)
+// Setting up speaker and sound buffers
+func InitSoundSystem() {
+	// Set up the speaker
+	speaker.Init(SAMPLERATE, SAMPLERATE.N(time.Second/10))
+	speaker.Play(volumeCtrl)
+	LoadSounds()
 }
 
-func BombSound() beep.Streamer {
-	return bombBuf.Streamer(0, bombBuf.Len())
+// Play sound by adding new sound to the mixer
+func PlaySound(name string) {
+	if buf, ok := sounds[name]; ok {
+		mixer.Add(buf.Streamer(0, buf.Len()))
+	}
 }
 
-func CellClearSound() beep.Streamer {
-	return cellClearBuf.Streamer(0, cellClearBuf.Len())
-}
+func SetVolume(percent int) {
+	// If percentage set to 0,
+	// mute the volume controller
+	if percent <= 0 {
+		volumeCtrl.Silent = true
+		return
+	}
+	volumeCtrl.Silent = false
 
-func WinSound() beep.Streamer {
-	return winBuf.Streamer(0, winBuf.Len())
+	// Convert percentage to volume
+	// 0% -> mute, 100% -> 0 dB
+	vol := float64(percent) / 100.0
+	volumeCtrl.Volume = 2 * math.Log2(vol)
 }
