@@ -174,6 +174,42 @@ func Distort(source beep.Streamer, dtype DistortionType, param float64) beep.Str
 	})
 }
 
+func FadeOut(source beep.Streamer, startTime time.Duration, finalVolume float64) beep.Streamer {
+	// Buffer the streamer to get the length of the audio
+	buf := beep.NewBuffer(FORMAT)
+	buf.Append(source)
+	length := buf.Len()
+
+	// Wrap back into streamer
+	playback := buf.Streamer(0, length)
+
+	// Calculate in which sample does the fade start
+	startFade := SAMPLERATE.N(startTime)
+	// If startTime
+	if startFade > length {
+		return playback
+	}
+
+	// Calculate how many samples will be faded
+	fadeSamples := length - startFade
+
+	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
+		n, ok = playback.Stream(samples)
+		for i := 0; i < n; i++ {
+			pos := playback.Position() - (n - 1)
+
+			if pos >= startFade {
+				progress := float64(pos-startFade) / float64(fadeSamples)
+				vol := 1.0 + (finalVolume-1.0)*progress
+				samples[i][0] *= vol
+				samples[i][1] *= vol
+			}
+		}
+
+		return n, ok
+	})
+}
+
 // Generates silence. That's it.
 func Rest(dur time.Duration) beep.Streamer {
 	return generators.Silence(SAMPLERATE.N(dur))
