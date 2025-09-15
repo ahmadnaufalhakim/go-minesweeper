@@ -62,6 +62,8 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 	screen.EnableMouse(tcell.MouseButtonEvents, tcell.MouseDragEvents)
 	screen.EnablePaste()
 
+	StopAllSounds()
+
 	playing := true
 	ox, oy := -1, -1
 	var lastMouseButtons tcell.ButtonMask
