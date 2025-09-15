@@ -233,6 +233,8 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 
 	var menuCount int
 
+	PlaySound("intro")
+
 	for {
 		screen.Clear()
 		DrawBackground(screen, bgs[opts.bgIndex], false)
