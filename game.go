@@ -24,12 +24,12 @@ func NewGameOptions() *GameOptions {
 		BorderStyle:      DefaultBorder,
 		ShowInnerBorders: false,
 		Background:       "none",
-		Volume:           100,
+		Volume:           50,
 		Difficulty:       DifficultyMap["beginner"],
 		//TODO: debug for `ShowInnerBorders = true`
 
 		bgIndex:  0,
-		volIndex: 10,
+		volIndex: 5,
 	}
 }
 
