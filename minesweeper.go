@@ -425,6 +425,29 @@ func (m *Minesweeper) Draw(
 	}
 }
 
+func (m *Minesweeper) DrawSmiley(
+	screen tcell.Screen,
+	screenY int, style tcell.Style,
+	lastMouseButtons tcell.ButtonMask,
+) {
+	if m.IsGameOver {
+		var message string
+		if m.IsWon {
+			message = "You win!"
+			DrawCentered(screen, screenY-3, style, "😎")
+		} else {
+			message = "You lose!"
+			DrawCentered(screen, screenY-3, style, "😭")
+		}
+		DrawCentered(screen, screenY-2, style, message)
+		DrawCentered(screen, screenY-1, style, "Press 'r' to create a new board, 'q' to quit to main menu.")
+	} else if lastMouseButtons == tcell.Button1 {
+		DrawCentered(screen, screenY-3, style, "😮")
+	} else {
+		DrawCentered(screen, screenY-3, style, "🙂")
+	}
+}
+
 func (m *Minesweeper) ScreenToGrid(
 	screenX, screenY,
 	offsetX, offsetY int,

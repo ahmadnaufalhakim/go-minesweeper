@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -19,6 +18,7 @@ const (
 	PageCredits
 	PageQuitConfirm
 	PageCustomInput
+	menuPageCount
 )
 
 func drawTitleItems(
@@ -52,7 +52,7 @@ func drawMainMenu(
 	screen tcell.Screen, titleItems []string,
 	selected int, difficulty string, difficultyNG string,
 	opts *GameOptions,
-) {
+) int {
 	w, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -78,9 +78,15 @@ func drawMainMenu(
 	xNG := ((w-len(menuItems[1]))/2 - len(menuItems[1])%2) + (len(menuItems[1]) - (len(difficultyNG) + 1))
 	yNG := titleOffsetY + titleHeight + 8
 	DrawString(screen, xNG, yNG, DifficultyToStyle[difficultyNG], difficultyNG)
+
+	return len(menuItems)
 }
 
-func drawOptionsMenu(screen tcell.Screen, titleItems []string, selected int, opts *GameOptions) {
+func drawOptionsMenu(
+	screen tcell.Screen, titleItems []string,
+	selected int,
+	opts *GameOptions,
+) int {
 	_, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -89,6 +95,7 @@ func drawOptionsMenu(screen tcell.Screen, titleItems []string, selected int, opt
 		fmt.Sprintf("Show inner borders: <%v>", opts.ShowInnerBorders),
 		fmt.Sprintf("Border style: <%v>", opts.BorderStyle),
 		fmt.Sprintf("Background: <%v>", opts.Background),
+		fmt.Sprintf("Volume: <%v>", opts.Volume),
 		"Back",
 	}
 	menuHeight := (len(menuItems)+1)*2 - 1
@@ -98,9 +105,14 @@ func drawOptionsMenu(screen tcell.Screen, titleItems []string, selected int, opt
 
 	drawTitleItems(screen, titleItems, titleOffsetY, opts)
 	drawMenuItems(screen, selected, "⚑⚑⚑ Options  ⚑⚑⚑", menuItems, titleOffsetY+titleHeight+4, opts)
+
+	return len(menuItems)
 }
 
-func drawCredits(screen tcell.Screen, titleItems []string, opts *GameOptions) {
+func drawCredits(
+	screen tcell.Screen, titleItems []string,
+	opts *GameOptions,
+) {
 	_, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -141,7 +153,7 @@ func drawCustomInput(
 	cfg DifficultyConfig,
 	buf string, errMsg string,
 	opts *GameOptions,
-) {
+) int {
 	_, h := screen.Size()
 
 	titleHeight := len(titleItems)
@@ -167,6 +179,8 @@ func drawCustomInput(
 	if errMsg != "" {
 		DrawCentered(screen, titleOffsetY+titleHeight+2+(len(menuItems)+2)*2, opts.Style, "Error: "+errMsg)
 	}
+
+	return len(menuItems)
 }
 
 func drawHelpHint(screen tcell.Screen, opts *GameOptions) {
@@ -175,11 +189,28 @@ func drawHelpHint(screen tcell.Screen, opts *GameOptions) {
 	DrawString(screen, w-len(message)-1, h-1, opts.Style, message)
 }
 
+func moveSelection(selected *int, delta, menuCount int) {
+	*selected = (*selected + delta + menuCount) % menuCount
+}
+
+func adjustOptions(selected, delta int, bgs []string, volPercentages []int, opts *GameOptions) {
+	switch selected {
+	case 0:
+		opts.ToggleInnerBorders()
+	case 1:
+		opts.NextBorderStyle(delta)
+	case 2:
+		opts.NextBackground(delta, bgs)
+	case 3:
+		opts.NextVolume(delta, volPercentages)
+	}
+}
+
 func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, DifficultyConfig, bool) {
 	page := PageMain
 	titleItems := assets.RandomTitle()
 	bgs := append([]string{"none"}, assets.ListBackgrounds()...)
-	bgIndex := slices.Index(bgs, opts.Background)
+	volPercentages := []int{0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
 	selected := 0
 	difficulties := []string{"beginner", "intermediate", "advanced", "expert", "insane", "custom"}
 	difficultiesNG := []string{"beginner", "intermediate", "advanced", "expert", "insane"}
@@ -202,23 +233,22 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 
 	var menuCount int
 
+	PlaySound("intro")
+
 	for {
 		screen.Clear()
-		DrawBackground(screen, bgs[bgIndex], false)
+		DrawBackground(screen, bgs[opts.bgIndex], false)
 		switch page {
 		case PageMain:
-			drawMainMenu(screen, titleItems, selected, difficulties[diffIndex], difficultiesNG[diffNGIndex], opts)
-			menuCount = 5
+			menuCount = drawMainMenu(screen, titleItems, selected, difficulties[diffIndex], difficultiesNG[diffNGIndex], opts)
 		case PageOptions:
-			drawOptionsMenu(screen, titleItems, selected, opts)
-			menuCount = 4
+			menuCount = drawOptionsMenu(screen, titleItems, selected, opts)
 		case PageCredits:
 			drawCredits(screen, titleItems, opts)
 		case PageQuitConfirm:
 			drawQuitConfirm(screen, opts)
 		case PageCustomInput:
-			drawCustomInput(screen, titleItems, selected, customCfg, inputBuffer, errorMsg, opts)
-			menuCount = 5
+			menuCount = drawCustomInput(screen, titleItems, selected, customCfg, inputBuffer, errorMsg, opts)
 		}
 		drawHelpHint(screen, opts)
 		screen.Show()
@@ -239,12 +269,12 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 			case tcell.KeyUp:
 				switch page {
 				case PageMain, PageOptions, PageCustomInput:
-					selected = (selected - 1 + menuCount) % menuCount
+					moveSelection(&selected, -1, menuCount)
 				}
 			case tcell.KeyDown:
 				switch page {
 				case PageMain, PageOptions, PageCustomInput:
-					selected = (selected + 1) % menuCount
+					moveSelection(&selected, 1, menuCount)
 				}
 			case tcell.KeyLeft:
 				switch page {
@@ -256,18 +286,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 						diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
 					}
 				case PageOptions:
-					switch selected {
-					// Show inner borders
-					case 0:
-						opts.ShowInnerBorders = !opts.ShowInnerBorders
-					// Border style
-					case 1:
-						opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
-					// Background
-					case 2:
-						bgIndex = (bgIndex - 1 + len(bgs)) % len(bgs)
-						opts.Background = bgs[bgIndex]
-					}
+					adjustOptions(selected, -1, bgs, volPercentages, opts)
 				case PageCustomInput:
 					switch selected {
 					case 0:
@@ -288,18 +307,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 						diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
 					}
 				case PageOptions:
-					switch selected {
-					// Show inner borders
-					case 0:
-						opts.ShowInnerBorders = !opts.ShowInnerBorders
-					// Border style
-					case 1:
-						opts.BorderStyle = (opts.BorderStyle + 1) % 2
-					// Background
-					case 2:
-						bgIndex = (bgIndex + 1) % len(bgs)
-						opts.Background = bgs[bgIndex]
-					}
+					adjustOptions(selected, 1, bgs, volPercentages, opts)
 				case PageCustomInput:
 					switch selected {
 					case 0:
@@ -396,12 +404,14 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 				} else {
 					switch r {
 					case 'w':
-						if page == PageMain || page == PageOptions || page == PageCustomInput {
-							selected = (selected - 1 + menuCount) % menuCount
+						switch page {
+						case PageMain, PageOptions, PageCustomInput:
+							moveSelection(&selected, -1, menuCount)
 						}
 					case 's':
-						if page == PageMain || page == PageOptions || page == PageCustomInput {
-							selected = (selected + 1) % menuCount
+						switch page {
+						case PageMain, PageOptions, PageCustomInput:
+							moveSelection(&selected, 1, menuCount)
 						}
 					case 'a':
 						switch page {
@@ -413,18 +423,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 								diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
 							}
 						case PageOptions:
-							switch selected {
-							// Show inner borders
-							case 0:
-								opts.ShowInnerBorders = !opts.ShowInnerBorders
-							// Border style
-							case 1:
-								opts.BorderStyle = (opts.BorderStyle - 1 + 2) % 2
-							// Background
-							case 2:
-								bgIndex = (bgIndex - 1 + len(bgs)) % len(bgs)
-								opts.Background = bgs[bgIndex]
-							}
+							adjustOptions(selected, -1, bgs, volPercentages, opts)
 						case PageCustomInput:
 							switch selected {
 							case 0:
@@ -445,17 +444,8 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 								diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
 							}
 						case PageOptions:
-							switch selected {
-							// Show inner borders
-							case 0:
-								opts.ShowInnerBorders = !opts.ShowInnerBorders
-							// Border style
-							case 1:
-								opts.BorderStyle = (opts.BorderStyle + 1) % 2
-							case 2:
-								bgIndex = (bgIndex + 1) % len(bgs)
-								opts.Background = bgs[bgIndex]
-							}
+							adjustOptions(selected, 1, bgs, volPercentages, opts)
+
 						case PageCustomInput:
 							switch selected {
 							case 0:

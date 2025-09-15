@@ -11,7 +11,11 @@ type GameOptions struct {
 	BorderStyle      BorderStyle
 	ShowInnerBorders bool
 	Background       string
+	Volume           int
 	Difficulty       DifficultyConfig
+
+	bgIndex  int
+	volIndex int
 }
 
 func NewGameOptions() *GameOptions {
@@ -20,9 +24,33 @@ func NewGameOptions() *GameOptions {
 		BorderStyle:      DefaultBorder,
 		ShowInnerBorders: false,
 		Background:       "none",
+		Volume:           50,
 		Difficulty:       DifficultyMap["beginner"],
 		//TODO: debug for `ShowInnerBorders = true`
+
+		bgIndex:  0,
+		volIndex: 5,
 	}
+}
+
+func (opts *GameOptions) ToggleInnerBorders() {
+	opts.ShowInnerBorders = !opts.ShowInnerBorders
+}
+
+func (opts *GameOptions) NextBorderStyle(delta int) {
+	opts.BorderStyle = BorderStyle((int(opts.BorderStyle) + delta + int(borderStyleCount)) % int(borderStyleCount))
+}
+
+func (opts *GameOptions) NextBackground(delta int, bgs []string) {
+	opts.bgIndex = (opts.bgIndex + delta + len(bgs)) % len(bgs)
+	opts.Background = bgs[opts.bgIndex]
+}
+
+func (opts *GameOptions) NextVolume(delta int, volPercentages []int) {
+	opts.volIndex = (opts.volIndex + delta + len(volPercentages)) % len(volPercentages)
+	opts.Volume = volPercentages[opts.volIndex]
+	SetVolume(opts.Volume)
+	PlaySound("cellClear")
 }
 
 func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) GameState {
@@ -34,6 +62,8 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 	screen.EnableMouse(tcell.MouseButtonEvents, tcell.MouseDragEvents)
 	screen.EnablePaste()
 
+	StopAllSounds()
+
 	playing := true
 	ox, oy := -1, -1
 	var lastMouseButtons tcell.ButtonMask
@@ -41,20 +71,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 		screen.Clear()
 		DrawBackground(screen, opts.Background, m.IsGameOver && !m.IsWon)
 		m.Draw(screen, opts.BorderStyle, opts.ShowInnerBorders, mScreenX, mScreenY)
-		if m.IsGameOver {
-			var message string
-			if m.IsWon {
-				message = "You win!"
-				DrawCentered(screen, mScreenY-3, opts.Style, "😎")
-			} else {
-				message = "You lose!"
-				DrawCentered(screen, mScreenY-3, opts.Style, "😭")
-			}
-			DrawCentered(screen, mScreenY-2, opts.Style, message)
-			DrawCentered(screen, mScreenY-1, opts.Style, "Press 'r' to create a new board, 'q' to quit to main menu.")
-		} else {
-			DrawCentered(screen, mScreenY-3, opts.Style, "🙂")
-		}
+		m.DrawSmiley(screen, mScreenY, opts.Style, lastMouseButtons)
 		screen.Show()
 
 		ev := screen.PollEvent()
@@ -96,12 +113,12 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 							if ok := m.Reveal(row, col, true); ok {
 								if m.IsGameOver {
 									if m.IsWon {
-										PlaySound(WinSound())
+										PlaySound("win")
 									} else {
-										PlaySound(BombSound())
+										PlaySound("bomb")
 									}
 								} else {
-									PlaySound(CellClearSound())
+									PlaySound("cellClear")
 								}
 							}
 						case tcell.Button2:
@@ -109,6 +126,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 						}
 					}
 					ox, oy = -1, -1
+					lastMouseButtons = tcell.ButtonNone
 				}
 			}
 		}

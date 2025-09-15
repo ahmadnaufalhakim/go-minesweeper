@@ -12,6 +12,7 @@ const (
 	StateMenu GameState = iota
 	StatePlaying
 	StateQuit
+	gameStateCount
 )
 
 func main() {
