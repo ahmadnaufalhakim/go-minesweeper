@@ -3,6 +3,19 @@ package main
 import "math"
 
 var (
+	C3  = Note(-21)
+	Cs3 = Note(-20)
+	D3  = Note(-19)
+	Ds3 = Note(-18)
+	E3  = Note(-17)
+	F3  = Note(-16)
+	Fs3 = Note(-15)
+	G3  = Note(-14)
+	Gs3 = Note(-13)
+	A3  = Note(-12)
+	As3 = Note(-11)
+	B3  = Note(-10)
+
 	C4  = Note(-9)
 	Cs4 = Note(-8)
 	D4  = Note(-7)
