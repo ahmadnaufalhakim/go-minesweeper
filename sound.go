@@ -165,7 +165,10 @@ func LoadSounds() {
 }
 
 // Setting up speaker and sound buffers
-func InitSoundSystem() {
+func InitSoundSystem(opts *GameOptions) {
+	// Set up volume
+	SetVolume(opts.Volume)
+
 	// Set up the speaker
 	speaker.Init(SAMPLERATE, SAMPLERATE.N(time.Second/10))
 	speaker.Play(volumeCtrl)
