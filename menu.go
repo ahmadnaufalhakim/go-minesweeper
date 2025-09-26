@@ -360,7 +360,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 					switch selected {
 					// Start
 					case 3:
-						_, err := GenerateBoard(customCfg)
+						_, err := GenerateBoardWithStartCell(customCfg)
 						if err != nil {
 							errorMsg = err.Error()
 						} else {

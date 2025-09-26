@@ -48,7 +48,7 @@ func main() {
 			break
 		}
 		if state == StatePlaying {
-			minesweeper, _ := GenerateBoard(cfg)
+			minesweeper, _ := GenerateBoardWithStartCell(cfg)
 			RunGame(screen, minesweeper, gameOptions, ng)
 		}
 	}

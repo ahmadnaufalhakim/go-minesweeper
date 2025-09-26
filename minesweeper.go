@@ -23,6 +23,7 @@ type Minesweeper struct {
 	IsGameOver    bool
 	IsWon         bool
 	RevealedCount int
+	StartCell     *Cell
 }
 
 type DifficultyConfig struct {
@@ -116,6 +117,10 @@ var directions = [8][2]int{
 	{1, -1}, {1, 0}, {1, 1},
 }
 
+func isOutOfBounds(rows, cols, row, col int) bool {
+	return row < 0 || row >= rows || col < 0 || col >= cols
+}
+
 func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
 	if m.IsGameOver {
 		return false
@@ -156,7 +161,7 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
 		for _, direction := range directions {
 			newRow := row + direction[0]
 			newCol := col + direction[1]
-			if newRow < 0 || newRow >= m.Rows || newCol < 0 || newCol >= m.Cols {
+			if isOutOfBounds(m.Rows, m.Cols, newRow, newCol) {
 				continue
 			}
 			m.Reveal(newRow, newCol, false)
@@ -176,7 +181,7 @@ func (m *Minesweeper) Chord(row, col int) bool {
 		for _, direction := range directions {
 			newRow := row + direction[0]
 			newCol := col + direction[1]
-			if newRow < 0 || newRow >= m.Rows || newCol < 0 || newCol >= m.Cols {
+			if isOutOfBounds(m.Rows, m.Cols, newRow, newCol) {
 				continue
 			}
 			if !m.Grid[newRow][newCol].Revealed {
@@ -216,13 +221,17 @@ func addBomb(grid [][]Cell, rows, cols, row, col int) {
 	for _, direction := range directions {
 		newRow := row + direction[0]
 		newCol := col + direction[1]
-		if newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols {
+		if isOutOfBounds(rows, cols, newRow, newCol) {
 			continue
 		}
 		if grid[newRow][newCol].Value != BOMB {
 			grid[newRow][newCol].Value++
 		}
 	}
+}
+
+func isAdjacent(row1, col1, row2, col2 int) bool {
+	return (-1 <= row1-row2 && row1-row2 <= 1) && (-1 <= col1-col2 && col1-col2 <= 1)
 }
 
 func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
@@ -262,6 +271,53 @@ func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 		IsGameOver:    false,
 		IsWon:         false,
 		RevealedCount: 0,
+		StartCell:     nil,
+	}
+
+	return m, nil
+}
+
+func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
+	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
+		return nil, errors.New("rows, cols, and bombCount must be non-negative integer")
+	} else if cfg.Rows > MAX_ROWS {
+		return nil, fmt.Errorf("maximum number of rows is capped at %d", MAX_ROWS)
+	} else if cfg.Cols > MAX_COLS {
+		return nil, fmt.Errorf("maximum number of cols is capped at %d", MAX_COLS)
+	}
+
+	if cfg.BombCount >= cfg.Rows*cfg.Cols {
+		return nil, fmt.Errorf("too many bombCount, must be in the range of [1, %d]", cfg.Rows*cfg.Cols-1)
+	}
+
+	grid := make([][]Cell, cfg.Rows)
+	for r := range grid {
+		grid[r] = make([]Cell, cfg.Cols)
+	}
+
+	startCellPos := rand.Intn(cfg.Rows * cfg.Cols)
+	startCellRow, startCellCol := startCellPos/cfg.Cols, startCellPos%cfg.Cols
+	startCell := &grid[startCellRow][startCellCol]
+	bombPositions := make([][2]int, 0)
+	for len(bombPositions) < cfg.BombCount {
+		pos := rand.Intn(cfg.Rows * cfg.Cols)
+		r, c := pos/cfg.Cols, pos%cfg.Cols
+		if !isAdjacent(startCellRow, startCellCol, r, c) && grid[r][c].Value != BOMB {
+			bombPositions = append(bombPositions, [2]int{r, c})
+			addBomb(grid, cfg.Rows, cfg.Cols, r, c)
+		}
+	}
+
+	m := &Minesweeper{
+		Rows:          cfg.Rows,
+		Cols:          cfg.Cols,
+		BombCount:     cfg.BombCount,
+		Grid:          grid,
+		BombPositions: bombPositions,
+		IsGameOver:    false,
+		IsWon:         false,
+		RevealedCount: 0,
+		StartCell:     startCell,
 	}
 
 	return m, nil
@@ -346,7 +402,7 @@ func (m *Minesweeper) Draw(
 				char  rune
 				style tcell.Style
 			)
-			cell := m.Grid[i][j]
+			cell := &m.Grid[i][j]
 			if !cell.Revealed {
 				if cell.Flagged {
 					if m.IsGameOver && cell.Value != BOMB {
@@ -356,8 +412,13 @@ func (m *Minesweeper) Draw(
 					}
 					style = FlagStyle
 				} else {
-					char = ' '
-					style = DefaultBorderStyle
+					if m.StartCell == cell {
+						char = '✓'
+						style = StartCellStyle
+					} else {
+						char = ' '
+						style = DefaultBorderStyle
+					}
 				}
 			} else {
 				char = intToRune[cell.Value]
