@@ -117,12 +117,16 @@ var directions = [8][2]int{
 	{1, -1}, {1, 0}, {1, 1},
 }
 
-func getNeighborsOf(rows, cols, row, col int) [][2]int {
+func isOutOfBounds(row, col, rows, cols int) bool {
+	return row < 0 || row >= rows || col < 0 || col >= cols
+}
+
+func getNeighborsOf(row, col, rows, cols int) [][2]int {
 	neighbors := make([][2]int, 0)
 	for _, direction := range directions {
 		newRow := row + direction[0]
 		newCol := col + direction[1]
-		if !isOutOfBounds(rows, cols, newRow, newCol) {
+		if !isOutOfBounds(newRow, newCol, rows, cols) {
 			neighbors = append(neighbors, [2]int{newRow, newCol})
 		}
 	}
@@ -130,8 +134,54 @@ func getNeighborsOf(rows, cols, row, col int) [][2]int {
 	return neighbors
 }
 
-func isOutOfBounds(rows, cols, row, col int) bool {
-	return row < 0 || row >= rows || col < 0 || col >= cols
+func addBomb(grid [][]Cell, row, col, rows, cols int) {
+	grid[row][col].Value = BOMB
+
+	neighbors := getNeighborsOf(row, col, rows, cols)
+	for _, neighbor := range neighbors {
+		if grid[neighbor[0]][neighbor[1]].Value != BOMB {
+			grid[neighbor[0]][neighbor[1]].Value++
+		}
+	}
+}
+
+func isAdjacent(row1, col1, row2, col2 int) bool {
+	return (-1 <= row1-row2 && row1-row2 <= 1) && (-1 <= col1-col2 && col1-col2 <= 1)
+}
+
+func (m *Minesweeper) drawBombs(
+	screen tcell.Screen,
+	showInnerBorders bool,
+	screenX, screenY int,
+) {
+	cellWidth, cellHeight := 1, 1
+	if showInnerBorders {
+		cellWidth, cellHeight = 2, 2
+	}
+
+	for _, pos := range m.BombPositions {
+		var (
+			char  rune
+			style tcell.Style
+		)
+		r, c := pos[0], pos[1]
+		cell := m.Grid[r][c]
+		if cell.Flagged {
+			continue
+		}
+		if m.IsWon {
+			char = '⚑'
+			style = FlagStyle
+		} else {
+			char = intToRune[BOMB]
+			style = ValueToCellStyle[cell.Value]
+		}
+		NewSprite(
+			char,
+			screenX+(cellWidth*c+1),
+			screenY+(cellHeight*r+1),
+		).Draw(screen, style)
+	}
 }
 
 func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
@@ -171,7 +221,7 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
 
 	// Flood-fill expansion
 	if cell.Value == CLEAR {
-		neighbors := getNeighborsOf(m.Rows, m.Cols, row, col)
+		neighbors := getNeighborsOf(row, col, m.Rows, m.Cols)
 		for _, neighbor := range neighbors {
 			m.Reveal(neighbor[0], neighbor[1], false)
 		}
@@ -188,7 +238,7 @@ func (m *Minesweeper) Chord(row, col int) bool {
 		unflaggedCells := make([][2]int, 0, 8)
 		flaggedCells := make([][2]int, 0, 8)
 
-		neighbors := getNeighborsOf(m.Rows, m.Cols, row, col)
+		neighbors := getNeighborsOf(row, col, m.Rows, m.Cols)
 		for _, neighbor := range neighbors {
 			if !m.Grid[neighbor[0]][neighbor[1]].Revealed {
 				if m.Grid[neighbor[0]][neighbor[1]].Flagged {
@@ -222,21 +272,6 @@ func (m *Minesweeper) Flag(row, col int) {
 	}
 }
 
-func addBomb(grid [][]Cell, rows, cols, row, col int) {
-	grid[row][col].Value = BOMB
-
-	neighbors := getNeighborsOf(rows, cols, row, col)
-	for _, neighbor := range neighbors {
-		if grid[neighbor[0]][neighbor[1]].Value != BOMB {
-			grid[neighbor[0]][neighbor[1]].Value++
-		}
-	}
-}
-
-func isAdjacent(row1, col1, row2, col2 int) bool {
-	return (-1 <= row1-row2 && row1-row2 <= 1) && (-1 <= col1-col2 && col1-col2 <= 1)
-}
-
 func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
 		return nil, errors.New("rows, cols, and bombCount must be non-negative integer")
@@ -261,7 +296,7 @@ func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 		r, c := pos/cfg.Cols, pos%cfg.Cols
 		if grid[r][c].Value != BOMB {
 			bombPositions = append(bombPositions, [2]int{r, c})
-			addBomb(grid, cfg.Rows, cfg.Cols, r, c)
+			addBomb(grid, r, c, cfg.Rows, cfg.Cols)
 		}
 	}
 
@@ -307,7 +342,7 @@ func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
 		r, c := pos/cfg.Cols, pos%cfg.Cols
 		if !isAdjacent(startCellRow, startCellCol, r, c) && grid[r][c].Value != BOMB {
 			bombPositions = append(bombPositions, [2]int{r, c})
-			addBomb(grid, cfg.Rows, cfg.Cols, r, c)
+			addBomb(grid, r, c, cfg.Rows, cfg.Cols)
 		}
 	}
 
@@ -324,41 +359,6 @@ func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
 	}
 
 	return m, nil
-}
-
-func (m *Minesweeper) drawBombs(
-	screen tcell.Screen,
-	showInnerBorders bool,
-	screenX, screenY int,
-) {
-	cellWidth, cellHeight := 1, 1
-	if showInnerBorders {
-		cellWidth, cellHeight = 2, 2
-	}
-
-	for _, pos := range m.BombPositions {
-		var (
-			char  rune
-			style tcell.Style
-		)
-		r, c := pos[0], pos[1]
-		cell := m.Grid[r][c]
-		if cell.Flagged {
-			continue
-		}
-		if m.IsWon {
-			char = '⚑'
-			style = FlagStyle
-		} else {
-			char = intToRune[BOMB]
-			style = ValueToCellStyle[cell.Value]
-		}
-		NewSprite(
-			char,
-			screenX+(cellWidth*c+1),
-			screenY+(cellHeight*r+1),
-		).Draw(screen, style)
-	}
 }
 
 func (m *Minesweeper) Draw(
@@ -534,7 +534,7 @@ func (m *Minesweeper) ScreenToGrid(
 
 	row = (relY - 1) / cellHeight
 	col = (relX - 1) / cellWidth
-	if isOutOfBounds(m.Rows, m.Cols, row, col) {
+	if isOutOfBounds(row, col, m.Rows, m.Cols) {
 		return -1, -1, false
 	}
 
