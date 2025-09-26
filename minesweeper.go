@@ -149,6 +149,22 @@ func isAdjacent(row1, col1, row2, col2 int) bool {
 	return (-1 <= row1-row2 && row1-row2 <= 1) && (-1 <= col1-col2 && col1-col2 <= 1)
 }
 
+func validateConfig(cfg DifficultyConfig) error {
+	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
+		return errors.New("rows, cols, and bombCount must be non-negative integer")
+	} else if cfg.Rows > MAX_ROWS {
+		return fmt.Errorf("maximum number of rows is capped at %d", MAX_ROWS)
+	} else if cfg.Cols > MAX_COLS {
+		return fmt.Errorf("maximum number of cols is capped at %d", MAX_COLS)
+	}
+
+	if cfg.BombCount >= cfg.Rows*cfg.Cols {
+		return fmt.Errorf("too many bombCount, must be in the range of [1, %d]", cfg.Rows*cfg.Cols-1)
+	}
+
+	return nil
+}
+
 func (m *Minesweeper) drawBombs(
 	screen tcell.Screen,
 	showInnerBorders bool,
@@ -273,16 +289,8 @@ func (m *Minesweeper) Flag(row, col int) {
 }
 
 func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
-	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
-		return nil, errors.New("rows, cols, and bombCount must be non-negative integer")
-	} else if cfg.Rows > MAX_ROWS {
-		return nil, fmt.Errorf("maximum number of rows is capped at %d", MAX_ROWS)
-	} else if cfg.Cols > MAX_COLS {
-		return nil, fmt.Errorf("maximum number of cols is capped at %d", MAX_COLS)
-	}
-
-	if cfg.BombCount >= cfg.Rows*cfg.Cols {
-		return nil, fmt.Errorf("too many bombCount, must be in the range of [1, %d]", cfg.Rows*cfg.Cols-1)
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
 	}
 
 	grid := make([][]Cell, cfg.Rows)
@@ -316,16 +324,8 @@ func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 }
 
 func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
-	if cfg.Rows <= 0 || cfg.Cols <= 0 || cfg.BombCount <= 0 {
-		return nil, errors.New("rows, cols, and bombCount must be non-negative integer")
-	} else if cfg.Rows > MAX_ROWS {
-		return nil, fmt.Errorf("maximum number of rows is capped at %d", MAX_ROWS)
-	} else if cfg.Cols > MAX_COLS {
-		return nil, fmt.Errorf("maximum number of cols is capped at %d", MAX_COLS)
-	}
-
-	if cfg.BombCount >= cfg.Rows*cfg.Cols {
-		return nil, fmt.Errorf("too many bombCount, must be in the range of [1, %d]", cfg.Rows*cfg.Cols-1)
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
 	}
 
 	grid := make([][]Cell, cfg.Rows)
