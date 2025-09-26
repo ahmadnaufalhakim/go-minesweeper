@@ -117,6 +117,19 @@ var directions = [8][2]int{
 	{1, -1}, {1, 0}, {1, 1},
 }
 
+func getNeighborsOf(rows, cols, row, col int) [][2]int {
+	neighbors := make([][2]int, 0)
+	for _, direction := range directions {
+		newRow := row + direction[0]
+		newCol := col + direction[1]
+		if !isOutOfBounds(rows, cols, newRow, newCol) {
+			neighbors = append(neighbors, [2]int{newRow, newCol})
+		}
+	}
+
+	return neighbors
+}
+
 func isOutOfBounds(rows, cols, row, col int) bool {
 	return row < 0 || row >= rows || col < 0 || col >= cols
 }
@@ -158,13 +171,9 @@ func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
 
 	// Flood-fill expansion
 	if cell.Value == CLEAR {
-		for _, direction := range directions {
-			newRow := row + direction[0]
-			newCol := col + direction[1]
-			if isOutOfBounds(m.Rows, m.Cols, newRow, newCol) {
-				continue
-			}
-			m.Reveal(newRow, newCol, false)
+		neighbors := getNeighborsOf(m.Rows, m.Cols, row, col)
+		for _, neighbor := range neighbors {
+			m.Reveal(neighbor[0], neighbor[1], false)
 		}
 	}
 
@@ -178,17 +187,14 @@ func (m *Minesweeper) Chord(row, col int) bool {
 	if cell.Revealed && cell.Value > 0 {
 		unflaggedCells := make([][2]int, 0, 8)
 		flaggedCells := make([][2]int, 0, 8)
-		for _, direction := range directions {
-			newRow := row + direction[0]
-			newCol := col + direction[1]
-			if isOutOfBounds(m.Rows, m.Cols, newRow, newCol) {
-				continue
-			}
-			if !m.Grid[newRow][newCol].Revealed {
-				if m.Grid[newRow][newCol].Flagged {
-					flaggedCells = append(flaggedCells, [2]int{newRow, newCol})
+
+		neighbors := getNeighborsOf(m.Rows, m.Cols, row, col)
+		for _, neighbor := range neighbors {
+			if !m.Grid[neighbor[0]][neighbor[1]].Revealed {
+				if m.Grid[neighbor[0]][neighbor[1]].Flagged {
+					flaggedCells = append(flaggedCells, neighbor)
 				} else {
-					unflaggedCells = append(unflaggedCells, [2]int{newRow, newCol})
+					unflaggedCells = append(unflaggedCells, neighbor)
 				}
 			}
 		}
@@ -218,14 +224,11 @@ func (m *Minesweeper) Flag(row, col int) {
 
 func addBomb(grid [][]Cell, rows, cols, row, col int) {
 	grid[row][col].Value = BOMB
-	for _, direction := range directions {
-		newRow := row + direction[0]
-		newCol := col + direction[1]
-		if isOutOfBounds(rows, cols, newRow, newCol) {
-			continue
-		}
-		if grid[newRow][newCol].Value != BOMB {
-			grid[newRow][newCol].Value++
+
+	neighbors := getNeighborsOf(rows, cols, row, col)
+	for _, neighbor := range neighbors {
+		if grid[neighbor[0]][neighbor[1]].Value != BOMB {
+			grid[neighbor[0]][neighbor[1]].Value++
 		}
 	}
 }
@@ -531,7 +534,7 @@ func (m *Minesweeper) ScreenToGrid(
 
 	row = (relY - 1) / cellHeight
 	col = (relX - 1) / cellWidth
-	if row < 0 || row >= m.Rows || col < 0 || col >= m.Cols {
+	if isOutOfBounds(m.Rows, m.Cols, row, col) {
 		return -1, -1, false
 	}
 
