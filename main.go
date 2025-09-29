@@ -15,6 +15,11 @@ const (
 	gameStateCount
 )
 
+const (
+	TRIES              = 1000
+	MAX_COMPONENT_SIZE = 18
+)
+
 func main() {
 	// Initialize screen
 	screen, err := tcell.NewScreen()
@@ -48,7 +53,12 @@ func main() {
 			break
 		}
 		if state == StatePlaying {
-			minesweeper, _ := GenerateBoardWithStartCell(cfg)
+			var minesweeper *Minesweeper
+			if ng {
+				minesweeper, _ = GenerateNGBoardWithStartCell(cfg, TRIES, MAX_COMPONENT_SIZE)
+			} else {
+				minesweeper, _ = GenerateBoardWithStartCell(cfg)
+			}
 			RunGame(screen, minesweeper, gameOptions, ng)
 		}
 	}

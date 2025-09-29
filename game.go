@@ -89,7 +89,11 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 					playing = false
 				case 'r':
 					StopAllSounds()
-					m, err = GenerateBoardWithStartCell(opts.Difficulty)
+					if ng {
+						m, err = GenerateNGBoardWithStartCell(opts.Difficulty, TRIES, MAX_COMPONENT_SIZE)
+					} else {
+						m, err = GenerateBoardWithStartCell(opts.Difficulty)
+					}
 					if err != nil {
 						log.Fatal(err)
 					}
