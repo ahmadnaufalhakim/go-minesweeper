@@ -15,16 +15,17 @@ type Cell struct {
 }
 
 type Minesweeper struct {
-	Rows            int
-	Cols            int
-	BombCount       int
-	Grid            [][]Cell
-	BombPositions   [][2]int
-	PositionToValue map[[2]int]int
-	IsGameOver      bool
-	IsWon           bool
-	RevealedCount   int
-	StartCell       *Cell
+	Rows              int
+	Cols              int
+	BombCount         int
+	Grid              [][]Cell
+	BombPositions     [][2]int
+	PositionToValue   map[[2]int]int
+	IsGameOver        bool
+	IsWon             bool
+	RevealedCount     int
+	StartCell         *Cell
+	StartCellPosition [2]int
 }
 
 type DifficultyConfig struct {
@@ -103,12 +104,12 @@ var DifficultyMap = map[string]DifficultyConfig{
 	"expert": {
 		Rows:      24,
 		Cols:      30,
-		BombCount: 160,
+		BombCount: 150,
 	},
 	"insane": {
 		Rows:      30,
 		Cols:      30,
-		BombCount: 220,
+		BombCount: 199,
 	},
 }
 
@@ -128,19 +129,6 @@ func (m *Minesweeper) getNeighborsOf(row, col int) [][2]int {
 		newRow := row + direction[0]
 		newCol := col + direction[1]
 		if !m.isOutOfBounds(newRow, newCol) {
-			neighbors = append(neighbors, [2]int{newRow, newCol})
-		}
-	}
-
-	return neighbors
-}
-
-func (m *Minesweeper) getUnknownNeighborsOf(row, col int) [][2]int {
-	neighbors := make([][2]int, 0)
-	for _, direction := range directions {
-		newRow := row + direction[0]
-		newCol := col + direction[1]
-		if !m.isOutOfBounds(newRow, newCol) && !m.Grid[newRow][newCol].Revealed && !m.Grid[newRow][newCol].Flagged {
 			neighbors = append(neighbors, [2]int{newRow, newCol})
 		}
 	}
@@ -312,13 +300,14 @@ func GenerateBoard(cfg DifficultyConfig) (*Minesweeper, error) {
 	}
 
 	m := &Minesweeper{
-		Rows:          cfg.Rows,
-		Cols:          cfg.Cols,
-		BombCount:     cfg.BombCount,
-		IsGameOver:    false,
-		IsWon:         false,
-		RevealedCount: 0,
-		StartCell:     nil,
+		Rows:              cfg.Rows,
+		Cols:              cfg.Cols,
+		BombCount:         cfg.BombCount,
+		IsGameOver:        false,
+		IsWon:             false,
+		RevealedCount:     0,
+		StartCell:         nil,
+		StartCellPosition: [2]int{-1, -1},
 	}
 
 	m.Grid = make([][]Cell, m.Rows)
@@ -361,6 +350,7 @@ func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
 
 	startCellPos := rand.Intn(m.Rows * m.Cols)
 	startCellRow, startCellCol := startCellPos/m.Cols, startCellPos%m.Cols
+	m.StartCellPosition = [2]int{startCellRow, startCellCol}
 	m.StartCell = &m.Grid[startCellRow][startCellCol]
 
 	m.BombPositions = make([][2]int, 0)
@@ -377,41 +367,20 @@ func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
 	return m, nil
 }
 
-func GenerateNGBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
-	if err := validateConfig(cfg); err != nil {
-		return nil, err
-	}
+func GenerateNGBoardWithStartCell(cfg DifficultyConfig, tries, maxComponentSize int) (*Minesweeper, error) {
+	for attempt := 1; attempt <= tries; attempt++ {
+		m, err := GenerateBoardWithStartCell(cfg)
+		if err != nil {
+			return nil, err
+		}
 
-	m := &Minesweeper{
-		Rows:          cfg.Rows,
-		Cols:          cfg.Cols,
-		BombCount:     cfg.BombCount,
-		IsGameOver:    false,
-		IsWon:         false,
-		RevealedCount: 0,
-	}
-
-	m.Grid = make([][]Cell, m.Rows)
-	for r := range m.Grid {
-		m.Grid[r] = make([]Cell, m.Cols)
-	}
-
-	startCellPos := rand.Intn(cfg.Rows * cfg.Cols)
-	startCellRow, startCellCol := startCellPos/cfg.Cols, startCellPos%cfg.Cols
-	m.StartCell = &m.Grid[startCellRow][startCellCol]
-
-	m.BombPositions = make([][2]int, 0)
-	m.PositionToValue = make(map[[2]int]int)
-	for len(m.BombPositions) < m.BombCount {
-		pos := rand.Intn(m.Rows * m.Cols)
-		r, c := pos/m.Cols, pos%m.Cols
-		if !isAdjacent(startCellRow, startCellCol, r, c) && m.Grid[r][c].Value != BOMB {
-			m.BombPositions = append(m.BombPositions, [2]int{r, c})
-			m.addBomb(r, c)
+		solvable, _, _ := m.DeterministicSolve(maxComponentSize)
+		if solvable {
+			return m, nil
 		}
 	}
 
-	return m, nil
+	return nil, errors.New("no NG board satisfies the difficulty")
 }
 
 func (m *Minesweeper) Draw(
