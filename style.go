@@ -48,5 +48,6 @@ var DifficultyToStyle = map[string]tcell.Style{
 }
 
 var DefaultStyle = tcell.StyleDefault.Background(COLOR_LIGHTGRAY).Foreground(tcell.ColorBlack)
+var SelectedStyle = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorBlack)
 var FlagStyle = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorDarkRed)
 var StartCellStyle = tcell.StyleDefault.Background(tcell.ColorLimeGreen).Foreground(tcell.ColorWhiteSmoke)

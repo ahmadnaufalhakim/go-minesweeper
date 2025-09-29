@@ -39,10 +39,12 @@ func drawMenuItems(
 	opts *GameOptions,
 ) {
 	DrawCentered(screen, offsetY, opts.Style, menuTitle)
+	var menuStyle tcell.Style
 	for i, menuItem := range menuItems {
-		menuStyle := DefaultStyle
 		if selected >= 0 && i == selected {
-			menuStyle = menuStyle.Background(tcell.ColorOrange)
+			menuStyle = SelectedStyle
+		} else {
+			menuStyle = DefaultStyle
 		}
 		DrawCentered(screen, offsetY+2+i*2, menuStyle, menuItem)
 	}
