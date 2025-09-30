@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -53,6 +55,72 @@ func (opts *GameOptions) NextVolume(delta int, volPercentages []int) {
 	PlaySound("cellClear")
 }
 
+func WaitForNGBoard(screen tcell.Screen, cfg DifficultyConfig) *Minesweeper {
+	loadingMsg := "Generating NG board .."
+	spinner := []rune{'|', '/', '-', '\\'}
+	idx := 0
+	attempt := 0
+
+	minesweeperCh, progressCh := GenerateNGBoard(cfg, TRIES, MAX_COMPONENT_SIZE)
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		var style tcell.Style
+
+		select {
+		case minesweeper := <-minesweeperCh:
+			if minesweeper == nil {
+				style = FailedOverlayStyle
+				screen.Clear()
+				DrawOverlay(
+					screen, style,
+					[]string{
+						"Failed to generate NG board!😭",
+						"Falling back to regular board ..",
+					},
+					DEFAULT_MARGIN_X, DEFAULT_MARGIN_Y,
+				)
+				screen.Show()
+				time.Sleep(2000 * time.Millisecond)
+
+				minesweeper, err := GenerateBoardWithStartCell(cfg)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				return minesweeper
+			}
+
+			style = SuccessOverlayStyle
+			screen.Clear()
+			DrawOverlay(
+				screen, style,
+				[]string{
+					"NG board successfully generated!😎",
+					fmt.Sprintf("It only took %d attempts😤", attempt),
+				},
+				DEFAULT_MARGIN_X, DEFAULT_MARGIN_Y,
+			)
+			screen.Show()
+			time.Sleep(2000 * time.Millisecond)
+			return minesweeper
+
+		case attempt = <-progressCh:
+		case <-ticker.C:
+			style = DefaultOverlayStyle
+			msgs := []string{
+				fmt.Sprintf("%s %c", loadingMsg, spinner[idx%len(spinner)]),
+				fmt.Sprintf("Attempt: %4d/%d", attempt, TRIES),
+			}
+			screen.Clear()
+			DrawOverlay(screen, style, msgs, DEFAULT_MARGIN_X, DEFAULT_MARGIN_Y)
+			screen.Show()
+			idx++
+		}
+	}
+}
+
 func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) GameState {
 	w, h := screen.Size()
 	mScreenX := (w-(m.Cols+2))/2 - (m.Cols+2)%2
@@ -90,7 +158,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 				case 'r':
 					StopAllSounds()
 					if ng {
-						m, err = GenerateNGBoardWithStartCell(opts.Difficulty, TRIES, MAX_COMPONENT_SIZE)
+						m = WaitForNGBoard(screen, opts.Difficulty)
 					} else {
 						m, err = GenerateBoardWithStartCell(opts.Difficulty)
 					}

@@ -55,7 +55,7 @@ func main() {
 		if state == StatePlaying {
 			var minesweeper *Minesweeper
 			if ng {
-				minesweeper, _ = GenerateNGBoardWithStartCell(cfg, TRIES, MAX_COMPONENT_SIZE)
+				minesweeper = WaitForNGBoard(screen, cfg)
 			} else {
 				minesweeper, _ = GenerateBoardWithStartCell(cfg)
 			}
