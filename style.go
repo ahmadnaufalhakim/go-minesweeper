@@ -51,3 +51,7 @@ var DefaultStyle = tcell.StyleDefault.Background(COLOR_LIGHTGRAY).Foreground(tce
 var SelectedStyle = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorBlack)
 var FlagStyle = tcell.StyleDefault.Background(tcell.ColorOrange).Foreground(tcell.ColorDarkRed)
 var StartCellStyle = tcell.StyleDefault.Background(tcell.ColorLimeGreen).Foreground(tcell.ColorWhiteSmoke)
+
+var DefaultOverlayStyle = tcell.StyleDefault.Background(tcell.ColorDarkOrange).Foreground(tcell.ColorBlack)
+var SuccessOverlayStyle = tcell.StyleDefault.Background(tcell.ColorDarkGreen).Foreground(tcell.ColorWhiteSmoke)
+var FailedOverlayStyle = tcell.StyleDefault.Background(tcell.ColorDarkRed).Foreground(tcell.ColorWhiteSmoke)
