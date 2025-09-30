@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"runtime"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -367,20 +368,41 @@ func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
 	return m, nil
 }
 
-func GenerateNGBoardWithStartCell(cfg DifficultyConfig, tries, maxComponentSize int) (*Minesweeper, error) {
-	for attempt := 1; attempt <= tries; attempt++ {
-		m, err := GenerateBoardWithStartCell(cfg)
-		if err != nil {
-			return nil, err
+func GenerateNGBoard(cfg DifficultyConfig, tries, maxComponentSize int) (<-chan *Minesweeper, <-chan int) {
+	minesweeperCh := make(chan *Minesweeper, 1)
+	progressCh := make(chan int, 1)
+
+	go func() {
+		defer close(minesweeperCh)
+		defer close(progressCh)
+
+		for attempt := 1; attempt <= tries; attempt++ {
+			select {
+			case progressCh <- attempt:
+			default:
+			}
+
+			m, err := GenerateBoardWithStartCell(cfg)
+			if err != nil {
+				minesweeperCh <- nil
+				return
+			}
+
+			solvable, _, _ := m.DeterministicSolve(maxComponentSize)
+			if solvable {
+				minesweeperCh <- m
+				return
+			}
+
+			// Yield the processor to allow the spinner (outside
+			// this module) to animate
+			runtime.Gosched()
 		}
 
-		solvable, _, _ := m.DeterministicSolve(maxComponentSize)
-		if solvable {
-			return m, nil
-		}
-	}
+		minesweeperCh <- nil
+	}()
 
-	return nil, errors.New("no NG board satisfies the difficulty")
+	return minesweeperCh, progressCh
 }
 
 func (m *Minesweeper) Draw(
