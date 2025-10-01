@@ -129,7 +129,6 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 		// Spinner tick overlay
 		case <-ticker.C:
 			msgs := []string{
-				//TODO
 				fmt.Sprintf("%s %s", strings.Repeat(" ", len(loadingMsg)), spinnerTop[idx%len(spinnerTop)]),
 				fmt.Sprintf("%s %s", loadingMsg, spinnerMid[idx%len(spinnerMid)]),
 				fmt.Sprintf("%s %s", strings.Repeat(" ", len(loadingMsg)), spinnerBot[idx%len(spinnerBot)]),
