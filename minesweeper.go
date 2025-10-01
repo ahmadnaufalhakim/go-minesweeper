@@ -425,33 +425,25 @@ func (m *Minesweeper) Draw(
 		cellWidth, cellHeight = 2, 2
 	}
 
-	NewSprite(
-		runes["topLeft"],
-		screenX, screenY,
-	).Draw(screen, DefaultBorderStyle)
+	NewSprite(runes["topLeft"], screenX, screenY).
+		Draw(screen, DefaultBorderStyle)
 	for j := 0; j < m.Cols; j++ {
-		NewSprite(
-			runes["horizontal"],
-			screenX+(cellWidth*j+1), screenY,
-		).Draw(screen, DefaultBorderStyle)
+		NewSprite(runes["horizontal"], screenX+(cellWidth*j+1), screenY).
+			Draw(screen, DefaultBorderStyle)
+
 		if j < m.Cols-1 && showInnerBorders {
-			NewSprite(
-				runes["tDown"],
-				screenX+(cellWidth*j+2), screenY,
-			).Draw(screen, DefaultBorderStyle)
-		} else {
-			NewSprite(
-				runes["topRight"],
-				screenX+(cellWidth*j+2), screenY,
-			).Draw(screen, DefaultBorderStyle)
+			NewSprite(runes["tDown"], screenX+(cellWidth*j+2), screenY).
+				Draw(screen, DefaultBorderStyle)
+		} else if j == m.Cols-1 {
+			NewSprite(runes["topRight"], screenX+(cellWidth*j+2), screenY).
+				Draw(screen, DefaultBorderStyle)
 		}
 	}
 
 	for i := 0; i < m.Rows; i++ {
-		NewSprite(
-			runes["vertical"],
-			screenX, screenY+(cellHeight*i+1),
-		).Draw(screen, DefaultBorderStyle)
+		NewSprite(runes["vertical"], screenX, screenY+(cellHeight*i+1)).
+			Draw(screen, DefaultBorderStyle)
+
 		for j := 0; j < m.Cols; j++ {
 			var (
 				char  rune
@@ -479,58 +471,42 @@ func (m *Minesweeper) Draw(
 				char = intToRune[cell.Value]
 				style = ValueToCellStyle[cell.Value]
 			}
-			NewSprite(
-				char,
-				screenX+(cellWidth*j+1), screenY+(cellHeight*i+1),
-			).Draw(screen, style)
-			NewSprite(
-				runes["vertical"],
-				screenX+(cellWidth*j+2), screenY+(cellHeight*i+1),
-			).Draw(screen, DefaultBorderStyle)
+			NewSprite(char, screenX+(cellWidth*j+1), screenY+(cellHeight*i+1)).
+				Draw(screen, style)
+			NewSprite(runes["vertical"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+1)).
+				Draw(screen, DefaultBorderStyle)
 		}
 
 		if i < m.Rows-1 && showInnerBorders {
-			NewSprite(
-				runes["tRight"],
-				screenX, screenY+(cellHeight*i+2),
-			).Draw(screen, DefaultBorderStyle)
+			NewSprite(runes["tRight"], screenX, screenY+(cellHeight*i+2)).
+				Draw(screen, DefaultBorderStyle)
+
 			for j := 0; j < m.Cols; j++ {
-				NewSprite(
-					runes["horizontal"],
-					screenX+(cellWidth*j+1), screenY+(cellHeight*i+2),
-				).Draw(screen, DefaultBorderStyle)
+				NewSprite(runes["horizontal"], screenX+(cellWidth*j+1), screenY+(cellHeight*i+2)).
+					Draw(screen, DefaultBorderStyle)
+
 				if j < m.Cols-1 {
-					NewSprite(
-						runes["cross"],
-						screenX+(cellWidth*j+2), screenY+(cellHeight*i+2),
-					).Draw(screen, DefaultBorderStyle)
+					NewSprite(runes["cross"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+						Draw(screen, DefaultBorderStyle)
 				} else {
-					NewSprite(
-						runes["tLeft"],
-						screenX+(cellWidth*j+2), screenY+(cellHeight*i+2),
-					).Draw(screen, DefaultBorderStyle)
+					NewSprite(runes["tLeft"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+						Draw(screen, DefaultBorderStyle)
 				}
 			}
-		} else {
-			NewSprite(
-				runes["bottomLeft"],
-				screenX, screenY+(cellHeight*i+2),
-			).Draw(screen, DefaultBorderStyle)
+		} else if i == m.Rows-1 {
+			NewSprite(runes["bottomLeft"], screenX, screenY+(cellHeight*i+2)).
+				Draw(screen, DefaultBorderStyle)
+
 			for j := 0; j < m.Cols; j++ {
-				NewSprite(
-					runes["horizontal"],
-					screenX+(cellWidth*j+1), screenY+(cellHeight*i+2),
-				).Draw(screen, DefaultBorderStyle)
+				NewSprite(runes["horizontal"], screenX+(cellWidth*j+1), screenY+(cellHeight*i+2)).
+					Draw(screen, DefaultBorderStyle)
+
 				if j < m.Cols-1 {
-					NewSprite(
-						runes["tUp"],
-						screenX+(cellWidth*j+2), screenY+(cellHeight*i+2),
-					).Draw(screen, DefaultBorderStyle)
+					NewSprite(runes["tUp"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+						Draw(screen, DefaultBorderStyle)
 				} else {
-					NewSprite(
-						runes["bottomRight"],
-						screenX+(cellWidth*j+2), screenY+(cellHeight*i+2),
-					).Draw(screen, DefaultBorderStyle)
+					NewSprite(runes["bottomRight"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+						Draw(screen, DefaultBorderStyle)
 				}
 			}
 		}
@@ -571,21 +547,22 @@ func (m *Minesweeper) ScreenToGrid(
 ) (row, col int, ok bool) {
 	relX := screenX - offsetX
 	relY := screenY - offsetY
-	cellWidth, cellHeight := 1, 1
-	if showInnerBorders {
-		cellWidth, cellHeight = 2, 2
-	}
 
 	if relX <= 0 || relY <= 0 {
 		return -1, -1, false
 	}
 
-	if showInnerBorders && ((relX-1)%cellWidth == 0 || (relY-1)%cellHeight == 0) {
-		return -1, -1, false
+	if showInnerBorders {
+		if relX%2 == 0 || relY%2 == 0 {
+			return -1, -1, false
+		}
+		row = (relY - 1) / 2
+		col = (relX - 1) / 2
+	} else {
+		row = relY - 1
+		col = relX - 1
 	}
 
-	row = (relY - 1) / cellHeight
-	col = (relX - 1) / cellWidth
 	if m.isOutOfBounds(row, col) {
 		return -1, -1, false
 	}
