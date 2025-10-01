@@ -21,7 +21,7 @@ const (
 	MAX_COMPONENT_SIZE = 18
 )
 
-var eventCh chan tcell.Event
+var screenEventCh chan tcell.Event
 
 func main() {
 	// Initialize screen
@@ -45,11 +45,11 @@ func main() {
 	}
 	defer quit()
 
-	eventCh = make(chan tcell.Event, 128)
+	screenEventCh = make(chan tcell.Event, 128)
 	go func() {
 		for {
 			ev := screen.PollEvent()
-			eventCh <- ev
+			screenEventCh <- ev
 		}
 	}()
 
@@ -83,7 +83,7 @@ func main() {
 				generating := true
 				for generating {
 					select {
-					case ev := <-eventCh:
+					case ev := <-screenEventCh:
 						switch ev := ev.(type) {
 						case *tcell.EventKey:
 							// User cancels NG board generation with 'q' or Esc

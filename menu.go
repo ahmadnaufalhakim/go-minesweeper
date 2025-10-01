@@ -257,7 +257,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 		screen.Show()
 
 		select {
-		case ev := <-eventCh:
+		case ev := <-screenEventCh:
 			switch ev := ev.(type) {
 			case *tcell.EventResize:
 				screen.Sync()

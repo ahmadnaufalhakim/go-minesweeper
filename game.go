@@ -167,7 +167,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 		screen.Show()
 
 		select {
-		case ev := <-eventCh:
+		case ev := <-screenEventCh:
 			switch ev := ev.(type) {
 			case *tcell.EventResize:
 				screen.Sync()
@@ -199,7 +199,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 							regenerating := true
 							for regenerating {
 								select {
-								case regEv := <-eventCh:
+								case regEv := <-screenEventCh:
 									switch regEv := regEv.(type) {
 									case *tcell.EventKey:
 										// User cancels NG board generation with 'q' or Esc
