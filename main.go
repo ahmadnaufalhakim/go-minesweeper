@@ -66,10 +66,16 @@ func main() {
 		if state == StatePlaying {
 			var minesweeper *Minesweeper
 			if ng {
+				// Create a cancellable context for NG board generation.
+				// cancel() can be called explicitly (when user presses
+				// 'q') or at the end (via defer).
 				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+				defer cancel() // always call cancel eventually (avoid context leak)
 
+				// Channel to receive the NG board generation result
 				doneCh := make(chan *Minesweeper, 1)
+
+				// Run NG board generation in a goroutine
 				go func() {
 					doneCh <- WaitForNGBoard(ctx, screen, cfg)
 				}()
@@ -80,18 +86,22 @@ func main() {
 					case ev := <-eventCh:
 						switch ev := ev.(type) {
 						case *tcell.EventKey:
+							// User cancels NG board generation with 'q' or Esc
 							if (ev.Key() == tcell.KeyRune && ev.Rune() == 'q') || ev.Key() == tcell.KeyEsc {
-								cancel()
+								cancel() // triggers ctx.Done() inside WaitForNGBoard
 							}
 						case *tcell.EventResize:
 							screen.Sync()
 						}
+
+					// NG board generation finishes (either success OR failed)
 					case m := <-doneCh:
 						minesweeper = m
 						generating = false
 					}
 				}
 
+				// If NG board generation is cancelled, go back to main menu
 				if minesweeper == nil {
 					continue
 				}

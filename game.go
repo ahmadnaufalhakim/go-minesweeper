@@ -68,6 +68,7 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 
 	for {
 		select {
+		// Triggered if cancel() is called
 		case <-ctx.Done():
 			screen.Clear()
 			DrawOverlay(
@@ -82,7 +83,9 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 			time.Sleep(2000 * time.Millisecond)
 			return nil
 
+		// NG board generation is finished (either success OR failed)
 		case minesweeper := <-minesweeperCh:
+			// Failed -> show failed overlay
 			if minesweeper == nil {
 				screen.Clear()
 				DrawOverlay(
@@ -103,6 +106,7 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 				return minesweeper
 			}
 
+			// Success -> show success overlay
 			screen.Clear()
 			DrawOverlay(
 				screen, SuccessOverlayStyle,
@@ -116,8 +120,10 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 			time.Sleep(2000 * time.Millisecond)
 			return minesweeper
 
+		// Progress update from NG board generator
 		case attempt = <-progressCh:
 
+		// Spinner tick overlay
 		case <-ticker.C:
 			msgs := []string{
 				fmt.Sprintf("%s %c", loadingMsg, spinner[idx%len(spinner)]),
@@ -170,10 +176,16 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 					case 'r':
 						StopAllSounds()
 						if ng {
+							// Create a cancellable context for NG board generation.
+							// cancel() can be called explicitly (when user presses
+							// 'q') or at the end (via defer).
 							ctx, cancel := context.WithCancel(context.Background())
-							defer cancel()
+							defer cancel() // always call cancel eventually (avoid context leak)
 
+							// Channel to receive the NG board generation result
 							doneCh := make(chan *Minesweeper, 1)
+
+							// Run NG board generation in a goroutine
 							go func() {
 								doneCh <- WaitForNGBoard(ctx, screen, opts.Difficulty)
 							}()
@@ -184,16 +196,20 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 								case regEv := <-eventCh:
 									switch regEv := regEv.(type) {
 									case *tcell.EventKey:
+										// User cancels NG board generation with 'q' or Esc
 										if regEv.Rune() == 'q' || regEv.Key() == tcell.KeyEsc {
-											cancel()
+											cancel() // triggers ctx.Done() inside WaitForNGBoard
 										}
 									}
+
+								// NG board generation finishes (either success OR failed)
 								case newM := <-doneCh:
 									m = newM
 									regenerating = false
 								}
 							}
 
+							// If NG board generation is cancelled, go back to main menu
 							if m == nil {
 								return StateMenu
 							}
