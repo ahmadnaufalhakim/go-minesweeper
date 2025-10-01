@@ -17,7 +17,7 @@ const (
 )
 
 const (
-	TRIES              = 1000
+	TRIES              = 1500
 	MAX_COMPONENT_SIZE = 18
 )
 
