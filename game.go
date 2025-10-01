@@ -145,9 +145,6 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 }
 
 func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) GameState {
-	w, h := screen.Size()
-	mScreenX := (w-(m.Cols+2))/2 - (m.Cols+2)%2
-	mScreenY := (h-(m.Rows+2))/2 - (m.Rows+2)%2
 	var err error
 
 	screen.EnableMouse(tcell.MouseButtonEvents, tcell.MouseDragEvents)
@@ -161,8 +158,8 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 	for playing {
 		screen.Clear()
 		DrawBackground(screen, opts.Background, m.IsGameOver && !m.IsWon)
-		m.Draw(screen, opts.BorderStyle, opts.ShowInnerBorders, mScreenX, mScreenY)
-		m.DrawSmiley(screen, mScreenY, opts.Style, lastMouseButtons)
+		m.Draw(screen, opts.BorderStyle, opts.ShowInnerBorders)
+		m.DrawSmiley(screen, opts.Style, opts.ShowInnerBorders, lastMouseButtons)
 		screen.Show()
 
 		select {
@@ -238,7 +235,7 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 					}
 				case tcell.ButtonNone:
 					if ox >= 0 {
-						row, col, ok := m.ScreenToGrid(x, y, mScreenX, mScreenY, opts.ShowInnerBorders)
+						row, col, ok := m.ScreenToGrid(screen, x, y, opts.ShowInnerBorders)
 						if ok {
 							switch lastMouseButtons {
 							case tcell.Button1:

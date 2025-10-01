@@ -109,9 +109,9 @@ var DifficultyMap = map[string]DifficultyConfig{
 		BombCount: 150,
 	},
 	"insane": {
-		Rows:      30,
-		Cols:      30,
-		BombCount: 199,
+		Rows:      24,
+		Cols:      40,
+		BombCount: 210,
 	},
 }
 
@@ -206,6 +206,22 @@ func (m *Minesweeper) drawBombs(
 			screenY+(cellHeight*r+1),
 		).Draw(screen, style)
 	}
+}
+
+func (m *Minesweeper) boardOffsets(screen tcell.Screen, showInnerBorders bool) (int, int) {
+	w, h := screen.Size()
+
+	cellWidth, cellHeight := 1, 1
+	if showInnerBorders {
+		cellWidth, cellHeight = 2, 2
+	}
+
+	boardWidth := m.Cols*cellWidth + 2
+	boardHeight := m.Rows*cellHeight + 2
+
+	offsetX := (w-boardWidth)/2 - boardWidth%2
+	offsetY := (h-boardHeight)/2 - boardHeight%2
+	return offsetX, offsetY
 }
 
 func (m *Minesweeper) Reveal(row, col int, userClick bool) bool {
@@ -417,31 +433,32 @@ func (m *Minesweeper) Draw(
 	screen tcell.Screen,
 	border BorderStyle,
 	showInnerBorders bool,
-	screenX, screenY int,
 ) {
-	runes := borderSets[border]
+	offsetX, offsetY := m.boardOffsets(screen, showInnerBorders)
 	cellWidth, cellHeight := 1, 1
 	if showInnerBorders {
 		cellWidth, cellHeight = 2, 2
 	}
 
-	NewSprite(runes["topLeft"], screenX, screenY).
+	runes := borderSets[border]
+
+	NewSprite(runes["topLeft"], offsetX, offsetY).
 		Draw(screen, DefaultBorderStyle)
 	for j := 0; j < m.Cols; j++ {
-		NewSprite(runes["horizontal"], screenX+(cellWidth*j+1), screenY).
+		NewSprite(runes["horizontal"], offsetX+(cellWidth*j+1), offsetY).
 			Draw(screen, DefaultBorderStyle)
 
 		if j < m.Cols-1 && showInnerBorders {
-			NewSprite(runes["tDown"], screenX+(cellWidth*j+2), screenY).
+			NewSprite(runes["tDown"], offsetX+(cellWidth*j+2), offsetY).
 				Draw(screen, DefaultBorderStyle)
 		} else if j == m.Cols-1 {
-			NewSprite(runes["topRight"], screenX+(cellWidth*j+2), screenY).
+			NewSprite(runes["topRight"], offsetX+(cellWidth*j+2), offsetY).
 				Draw(screen, DefaultBorderStyle)
 		}
 	}
 
 	for i := 0; i < m.Rows; i++ {
-		NewSprite(runes["vertical"], screenX, screenY+(cellHeight*i+1)).
+		NewSprite(runes["vertical"], offsetX, offsetY+(cellHeight*i+1)).
 			Draw(screen, DefaultBorderStyle)
 
 		for j := 0; j < m.Cols; j++ {
@@ -471,41 +488,41 @@ func (m *Minesweeper) Draw(
 				char = intToRune[cell.Value]
 				style = ValueToCellStyle[cell.Value]
 			}
-			NewSprite(char, screenX+(cellWidth*j+1), screenY+(cellHeight*i+1)).
+			NewSprite(char, offsetX+(cellWidth*j+1), offsetY+(cellHeight*i+1)).
 				Draw(screen, style)
-			NewSprite(runes["vertical"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+1)).
+			NewSprite(runes["vertical"], offsetX+(cellWidth*j+2), offsetY+(cellHeight*i+1)).
 				Draw(screen, DefaultBorderStyle)
 		}
 
 		if i < m.Rows-1 && showInnerBorders {
-			NewSprite(runes["tRight"], screenX, screenY+(cellHeight*i+2)).
+			NewSprite(runes["tRight"], offsetX, offsetY+(cellHeight*i+2)).
 				Draw(screen, DefaultBorderStyle)
 
 			for j := 0; j < m.Cols; j++ {
-				NewSprite(runes["horizontal"], screenX+(cellWidth*j+1), screenY+(cellHeight*i+2)).
+				NewSprite(runes["horizontal"], offsetX+(cellWidth*j+1), offsetY+(cellHeight*i+2)).
 					Draw(screen, DefaultBorderStyle)
 
 				if j < m.Cols-1 {
-					NewSprite(runes["cross"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+					NewSprite(runes["cross"], offsetX+(cellWidth*j+2), offsetY+(cellHeight*i+2)).
 						Draw(screen, DefaultBorderStyle)
 				} else {
-					NewSprite(runes["tLeft"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+					NewSprite(runes["tLeft"], offsetX+(cellWidth*j+2), offsetY+(cellHeight*i+2)).
 						Draw(screen, DefaultBorderStyle)
 				}
 			}
 		} else if i == m.Rows-1 {
-			NewSprite(runes["bottomLeft"], screenX, screenY+(cellHeight*i+2)).
+			NewSprite(runes["bottomLeft"], offsetX, offsetY+(cellHeight*i+2)).
 				Draw(screen, DefaultBorderStyle)
 
 			for j := 0; j < m.Cols; j++ {
-				NewSprite(runes["horizontal"], screenX+(cellWidth*j+1), screenY+(cellHeight*i+2)).
+				NewSprite(runes["horizontal"], offsetX+(cellWidth*j+1), offsetY+(cellHeight*i+2)).
 					Draw(screen, DefaultBorderStyle)
 
 				if j < m.Cols-1 {
-					NewSprite(runes["tUp"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+					NewSprite(runes["tUp"], offsetX+(cellWidth*j+2), offsetY+(cellHeight*i+2)).
 						Draw(screen, DefaultBorderStyle)
 				} else {
-					NewSprite(runes["bottomRight"], screenX+(cellWidth*j+2), screenY+(cellHeight*i+2)).
+					NewSprite(runes["bottomRight"], offsetX+(cellWidth*j+2), offsetY+(cellHeight*i+2)).
 						Draw(screen, DefaultBorderStyle)
 				}
 			}
@@ -513,38 +530,43 @@ func (m *Minesweeper) Draw(
 	}
 
 	if m.IsGameOver {
-		m.drawBombs(screen, showInnerBorders, screenX, screenY)
+		m.drawBombs(screen, showInnerBorders, offsetX, offsetY)
 	}
 }
 
 func (m *Minesweeper) DrawSmiley(
 	screen tcell.Screen,
-	screenY int, style tcell.Style,
+	style tcell.Style,
+	showInnerBorders bool,
 	lastMouseButtons tcell.ButtonMask,
 ) {
+	_, offsetY := m.boardOffsets(screen, showInnerBorders)
+
 	if m.IsGameOver {
 		var message string
 		if m.IsWon {
 			message = "You win!"
-			DrawCentered(screen, screenY-3, style, "😎")
+			DrawCentered(screen, offsetY-3, style, "😎")
 		} else {
 			message = "You lose!"
-			DrawCentered(screen, screenY-3, style, "😭")
+			DrawCentered(screen, offsetY-3, style, "😭")
 		}
-		DrawCentered(screen, screenY-2, style, message)
-		DrawCentered(screen, screenY-1, style, "Press 'r' to create a new board, 'q' to quit to main menu.")
+		DrawCentered(screen, offsetY-2, style, message)
+		DrawCentered(screen, offsetY-1, style, "Press 'r' to create a new board, 'q' to quit to main menu.")
 	} else if lastMouseButtons == tcell.Button1 {
-		DrawCentered(screen, screenY-3, style, "😮")
+		DrawCentered(screen, offsetY-3, style, "😮")
 	} else {
-		DrawCentered(screen, screenY-3, style, "🙂")
+		DrawCentered(screen, offsetY-3, style, "🙂")
 	}
 }
 
 func (m *Minesweeper) ScreenToGrid(
-	screenX, screenY,
-	offsetX, offsetY int,
+	screen tcell.Screen,
+	screenX, screenY int,
 	showInnerBorders bool,
 ) (row, col int, ok bool) {
+	offsetX, offsetY := m.boardOffsets(screen, showInnerBorders)
+
 	relX := screenX - offsetX
 	relY := screenY - offsetY
 
