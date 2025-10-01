@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -58,7 +59,9 @@ func (opts *GameOptions) NextVolume(delta int, volPercentages []int) {
 
 func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConfig) *Minesweeper {
 	loadingMsg := "Generating NG board .."
-	spinner := []rune{'|', '/', '-', '\\'}
+	spinnerTop := []string{" | ", "  /", "   ", "\\  "}
+	spinnerMid := []string{" | ", " / ", "---", " \\ "}
+	spinnerBot := []string{" | ", "/  ", "   ", "  \\"}
 	idx := 0
 	attempt := 0
 
@@ -126,7 +129,10 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 		// Spinner tick overlay
 		case <-ticker.C:
 			msgs := []string{
-				fmt.Sprintf("%s %c", loadingMsg, spinner[idx%len(spinner)]),
+				//TODO
+				fmt.Sprintf("%s %s", strings.Repeat(" ", len(loadingMsg)), spinnerTop[idx%len(spinnerTop)]),
+				fmt.Sprintf("%s %s", loadingMsg, spinnerMid[idx%len(spinnerMid)]),
+				fmt.Sprintf("%s %s", strings.Repeat(" ", len(loadingMsg)), spinnerBot[idx%len(spinnerBot)]),
 				fmt.Sprintf("Attempt: %4d/%d", attempt, TRIES),
 				"",
 				"Press 'q' or 'Esc' key to cancel NG mode",
