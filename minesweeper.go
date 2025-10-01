@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -368,7 +369,7 @@ func GenerateBoardWithStartCell(cfg DifficultyConfig) (*Minesweeper, error) {
 	return m, nil
 }
 
-func GenerateNGBoard(cfg DifficultyConfig, tries, maxComponentSize int) (<-chan *Minesweeper, <-chan int) {
+func GenerateNGBoard(ctx context.Context, cfg DifficultyConfig, tries, maxComponentSize int) (<-chan *Minesweeper, <-chan int) {
 	minesweeperCh := make(chan *Minesweeper, 1)
 	progressCh := make(chan int, 1)
 
@@ -378,8 +379,15 @@ func GenerateNGBoard(cfg DifficultyConfig, tries, maxComponentSize int) (<-chan 
 
 		for attempt := 1; attempt <= tries; attempt++ {
 			select {
-			case progressCh <- attempt:
+			case <-ctx.Done():
+				// NG board generation is cancelled by player
+				return
 			default:
+				// Send progress
+				select {
+				case progressCh <- attempt:
+				default:
+				}
 			}
 
 			m, err := GenerateBoardWithStartCell(cfg)

@@ -235,6 +235,7 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 
 	var menuCount int
 
+	StopAllSounds()
 	PlaySound("intro")
 
 	for {
@@ -255,221 +256,224 @@ func RunMenu(screen tcell.Screen, opts *GameOptions) (GameState, *GameOptions, D
 		drawHelpHint(screen, opts)
 		screen.Show()
 
-		ev := screen.PollEvent()
-		switch ev := ev.(type) {
-		case *tcell.EventResize:
-			screen.Sync()
-		case *tcell.EventKey:
-			switch ev.Key() {
-			case tcell.KeyEsc:
-				if page != PageMain {
-					page = PageMain
-					selected = 0
-					inputBuffer = ""
-					errorMsg = ""
-				}
-			case tcell.KeyUp:
-				switch page {
-				case PageMain, PageOptions, PageCustomInput:
-					moveSelection(&selected, -1, menuCount)
-				}
-			case tcell.KeyDown:
-				switch page {
-				case PageMain, PageOptions, PageCustomInput:
-					moveSelection(&selected, 1, menuCount)
-				}
-			case tcell.KeyLeft:
-				switch page {
-				case PageMain:
-					switch selected {
-					case 0:
-						diffIndex = (diffIndex - 1 + len(difficulties)) % len(difficulties)
-					case 1:
-						diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
-					}
-				case PageOptions:
-					adjustOptions(selected, -1, bgs, volPercentages, opts)
-				case PageCustomInput:
-					switch selected {
-					case 0:
-						rowsIndex = (rowsIndex - 1 + len(rowsOptions)) % len(rowsOptions)
-						customCfg.Rows = rowsOptions[rowsIndex]
-					case 1:
-						colsIndex = (colsIndex - 1 + len(colsOptions)) % len(colsOptions)
-						customCfg.Cols = colsOptions[colsIndex]
-					}
-				}
-			case tcell.KeyRight:
-				switch page {
-				case PageMain:
-					switch selected {
-					case 0:
-						diffIndex = (diffIndex + 1) % len(difficulties)
-					case 1:
-						diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
-					}
-				case PageOptions:
-					adjustOptions(selected, 1, bgs, volPercentages, opts)
-				case PageCustomInput:
-					switch selected {
-					case 0:
-						rowsIndex = (rowsIndex + 1) % len(rowsOptions)
-						customCfg.Rows = rowsOptions[rowsIndex]
-					case 1:
-						colsIndex = (colsIndex + 1) % len(colsOptions)
-						customCfg.Cols = colsOptions[colsIndex]
-					}
-				}
-			case tcell.KeyEnter:
-				switch page {
-				case PageMain:
-					switch selected {
-					// Play
-					case 0:
-						playingNG = false
-						if difficulties[diffIndex] == "custom" {
-							page = PageCustomInput
-						} else {
-							opts.Difficulty = DifficultyMap[difficulties[diffIndex]]
-							return StatePlaying, opts, DifficultyMap[difficulties[diffIndex]], playingNG
-						}
-					// Play NG
-					case 1:
-						playingNG = true
-						if difficultiesNG[diffNGIndex] == "custom" {
-							page = PageCustomInput
-						} else {
-							opts.Difficulty = DifficultyMap[difficultiesNG[diffNGIndex]]
-							return StatePlaying, opts, DifficultyMap[difficultiesNG[diffNGIndex]], playingNG
-						}
-					// Options
-					case 2:
-						page = PageOptions
-						selected = 0
-					// Credits
-					case 3:
-						page = PageCredits
-					// Quit
-					case menuCount - 1:
-						page = PageQuitConfirm
-					}
-				case PageOptions:
-					if selected == menuCount-1 {
-						page = PageMain
-						selected = 0
-					}
-				case PageCustomInput:
-					switch selected {
-					// Start
-					case 3:
-						_, err := GenerateBoardWithStartCell(customCfg)
-						if err != nil {
-							errorMsg = err.Error()
-						} else {
-							opts.Difficulty = customCfg
-							return StatePlaying, opts, customCfg, playingNG
-						}
-					// Back
-					case menuCount - 1:
+		select {
+		case ev := <-eventCh:
+			switch ev := ev.(type) {
+			case *tcell.EventResize:
+				screen.Sync()
+			case *tcell.EventKey:
+				switch ev.Key() {
+				case tcell.KeyEsc:
+					if page != PageMain {
 						page = PageMain
 						selected = 0
 						inputBuffer = ""
 						errorMsg = ""
-					default:
-						if inputBuffer != "" {
-							val, err := strconv.Atoi(inputBuffer)
-							if err == nil {
-								if selected == 2 {
-									customCfg.BombCount = val
-								}
-							} else {
-								errorMsg = err.Error()
-							}
-							inputBuffer = ""
+					}
+				case tcell.KeyUp:
+					switch page {
+					case PageMain, PageOptions, PageCustomInput:
+						moveSelection(&selected, -1, menuCount)
+					}
+				case tcell.KeyDown:
+					switch page {
+					case PageMain, PageOptions, PageCustomInput:
+						moveSelection(&selected, 1, menuCount)
+					}
+				case tcell.KeyLeft:
+					switch page {
+					case PageMain:
+						switch selected {
+						case 0:
+							diffIndex = (diffIndex - 1 + len(difficulties)) % len(difficulties)
+						case 1:
+							diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
+						}
+					case PageOptions:
+						adjustOptions(selected, -1, bgs, volPercentages, opts)
+					case PageCustomInput:
+						switch selected {
+						case 0:
+							rowsIndex = (rowsIndex - 1 + len(rowsOptions)) % len(rowsOptions)
+							customCfg.Rows = rowsOptions[rowsIndex]
+						case 1:
+							colsIndex = (colsIndex - 1 + len(colsOptions)) % len(colsOptions)
+							customCfg.Cols = colsOptions[colsIndex]
 						}
 					}
-				}
-			case tcell.KeyBackspace, tcell.KeyBackspace2:
-				if page != PageMain && page != PageCustomInput {
-					page = PageMain
-					selected = 0
-					inputBuffer = ""
-					errorMsg = ""
-				}
-				if len(inputBuffer) > 0 {
-					inputBuffer = inputBuffer[:len(inputBuffer)-1]
-				}
-			case tcell.KeyRune:
-				r := ev.Rune()
-				if page == PageCustomInput && selected == 2 && unicode.IsDigit(r) {
-					inputBuffer += string(r)
-				} else {
-					switch r {
-					case 'w':
-						switch page {
-						case PageMain, PageOptions, PageCustomInput:
-							moveSelection(&selected, -1, menuCount)
+				case tcell.KeyRight:
+					switch page {
+					case PageMain:
+						switch selected {
+						case 0:
+							diffIndex = (diffIndex + 1) % len(difficulties)
+						case 1:
+							diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
 						}
-					case 's':
-						switch page {
-						case PageMain, PageOptions, PageCustomInput:
-							moveSelection(&selected, 1, menuCount)
+					case PageOptions:
+						adjustOptions(selected, 1, bgs, volPercentages, opts)
+					case PageCustomInput:
+						switch selected {
+						case 0:
+							rowsIndex = (rowsIndex + 1) % len(rowsOptions)
+							customCfg.Rows = rowsOptions[rowsIndex]
+						case 1:
+							colsIndex = (colsIndex + 1) % len(colsOptions)
+							customCfg.Cols = colsOptions[colsIndex]
 						}
-					case 'a':
-						switch page {
-						case PageMain:
-							switch selected {
-							case 0:
-								diffIndex = (diffIndex - 1 + len(difficulties)) % len(difficulties)
-							case 1:
-								diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
+					}
+				case tcell.KeyEnter:
+					switch page {
+					case PageMain:
+						switch selected {
+						// Play
+						case 0:
+							playingNG = false
+							if difficulties[diffIndex] == "custom" {
+								page = PageCustomInput
+							} else {
+								opts.Difficulty = DifficultyMap[difficulties[diffIndex]]
+								return StatePlaying, opts, DifficultyMap[difficulties[diffIndex]], playingNG
 							}
-						case PageOptions:
-							adjustOptions(selected, -1, bgs, volPercentages, opts)
-						case PageCustomInput:
-							switch selected {
-							case 0:
-								rowsIndex = (rowsIndex - 1 + len(rowsOptions)) % len(rowsOptions)
-								customCfg.Rows = rowsOptions[rowsIndex]
-							case 1:
-								colsIndex = (colsIndex - 1 + len(colsOptions)) % len(colsOptions)
-								customCfg.Cols = colsOptions[colsIndex]
+						// Play NG
+						case 1:
+							playingNG = true
+							if difficultiesNG[diffNGIndex] == "custom" {
+								page = PageCustomInput
+							} else {
+								opts.Difficulty = DifficultyMap[difficultiesNG[diffNGIndex]]
+								return StatePlaying, opts, DifficultyMap[difficultiesNG[diffNGIndex]], playingNG
 							}
+						// Options
+						case 2:
+							page = PageOptions
+							selected = 0
+						// Credits
+						case 3:
+							page = PageCredits
+						// Quit
+						case menuCount - 1:
+							page = PageQuitConfirm
 						}
-					case 'd':
-						switch page {
-						case PageMain:
-							switch selected {
-							case 0:
-								diffIndex = (diffIndex + 1) % len(difficulties)
-							case 1:
-								diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
-							}
-						case PageOptions:
-							adjustOptions(selected, 1, bgs, volPercentages, opts)
-
-						case PageCustomInput:
-							switch selected {
-							case 0:
-								rowsIndex = (rowsIndex + 1) % len(rowsOptions)
-								customCfg.Rows = rowsOptions[rowsIndex]
-							case 1:
-								colsIndex = (colsIndex + 1) % len(colsOptions)
-								customCfg.Cols = colsOptions[colsIndex]
-							}
-						}
-					case 'y':
-						if page == PageQuitConfirm {
-							return StateQuit, opts, DifficultyConfig{}, false
-						}
-					case 'n':
-						if page == PageQuitConfirm {
+					case PageOptions:
+						if selected == menuCount-1 {
 							page = PageMain
 							selected = 0
+						}
+					case PageCustomInput:
+						switch selected {
+						// Start
+						case 3:
+							_, err := GenerateBoardWithStartCell(customCfg)
+							if err != nil {
+								errorMsg = err.Error()
+							} else {
+								opts.Difficulty = customCfg
+								return StatePlaying, opts, customCfg, playingNG
+							}
+						// Back
+						case menuCount - 1:
+							page = PageMain
+							selected = 0
+							inputBuffer = ""
+							errorMsg = ""
+						default:
+							if inputBuffer != "" {
+								val, err := strconv.Atoi(inputBuffer)
+								if err == nil {
+									if selected == 2 {
+										customCfg.BombCount = val
+									}
+								} else {
+									errorMsg = err.Error()
+								}
+								inputBuffer = ""
+							}
+						}
+					}
+				case tcell.KeyBackspace, tcell.KeyBackspace2:
+					if page != PageMain && page != PageCustomInput {
+						page = PageMain
+						selected = 0
+						inputBuffer = ""
+						errorMsg = ""
+					}
+					if len(inputBuffer) > 0 {
+						inputBuffer = inputBuffer[:len(inputBuffer)-1]
+					}
+				case tcell.KeyRune:
+					r := ev.Rune()
+					if page == PageCustomInput && selected == 2 && unicode.IsDigit(r) {
+						inputBuffer += string(r)
+					} else {
+						switch r {
+						case 'w':
+							switch page {
+							case PageMain, PageOptions, PageCustomInput:
+								moveSelection(&selected, -1, menuCount)
+							}
+						case 's':
+							switch page {
+							case PageMain, PageOptions, PageCustomInput:
+								moveSelection(&selected, 1, menuCount)
+							}
+						case 'a':
+							switch page {
+							case PageMain:
+								switch selected {
+								case 0:
+									diffIndex = (diffIndex - 1 + len(difficulties)) % len(difficulties)
+								case 1:
+									diffNGIndex = (diffNGIndex - 1 + len(difficultiesNG)) % len(difficultiesNG)
+								}
+							case PageOptions:
+								adjustOptions(selected, -1, bgs, volPercentages, opts)
+							case PageCustomInput:
+								switch selected {
+								case 0:
+									rowsIndex = (rowsIndex - 1 + len(rowsOptions)) % len(rowsOptions)
+									customCfg.Rows = rowsOptions[rowsIndex]
+								case 1:
+									colsIndex = (colsIndex - 1 + len(colsOptions)) % len(colsOptions)
+									customCfg.Cols = colsOptions[colsIndex]
+								}
+							}
+						case 'd':
+							switch page {
+							case PageMain:
+								switch selected {
+								case 0:
+									diffIndex = (diffIndex + 1) % len(difficulties)
+								case 1:
+									diffNGIndex = (diffNGIndex + 1) % len(difficultiesNG)
+								}
+							case PageOptions:
+								adjustOptions(selected, 1, bgs, volPercentages, opts)
+
+							case PageCustomInput:
+								switch selected {
+								case 0:
+									rowsIndex = (rowsIndex + 1) % len(rowsOptions)
+									customCfg.Rows = rowsOptions[rowsIndex]
+								case 1:
+									colsIndex = (colsIndex + 1) % len(colsOptions)
+									customCfg.Cols = colsOptions[colsIndex]
+								}
+							}
+						case 'y':
+							if page == PageQuitConfirm {
+								return StateQuit, opts, DifficultyConfig{}, false
+							}
+						case 'n':
+							if page == PageQuitConfirm {
+								page = PageMain
+								selected = 0
+							}
 						}
 					}
 				}
 			}
+		default:
 		}
 	}
 }

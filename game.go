@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -55,26 +56,26 @@ func (opts *GameOptions) NextVolume(delta int, volPercentages []int) {
 	PlaySound("cellClear")
 }
 
-func WaitForNGBoard(screen tcell.Screen, cfg DifficultyConfig) *Minesweeper {
+func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConfig) *Minesweeper {
 	loadingMsg := "Generating NG board .."
 	spinner := []rune{'|', '/', '-', '\\'}
 	idx := 0
 	attempt := 0
 
-	minesweeperCh, progressCh := GenerateNGBoard(cfg, TRIES, MAX_COMPONENT_SIZE)
+	minesweeperCh, progressCh := GenerateNGBoard(ctx, cfg, TRIES, MAX_COMPONENT_SIZE)
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
-		var style tcell.Style
-
 		select {
+		case <-ctx.Done():
+			return nil
+
 		case minesweeper := <-minesweeperCh:
 			if minesweeper == nil {
-				style = FailedOverlayStyle
 				screen.Clear()
 				DrawOverlay(
-					screen, style,
+					screen, FailedOverlayStyle,
 					[]string{
 						"Failed to generate NG board!😭",
 						"Falling back to regular board ..",
@@ -88,14 +89,12 @@ func WaitForNGBoard(screen tcell.Screen, cfg DifficultyConfig) *Minesweeper {
 				if err != nil {
 					log.Fatal(err)
 				}
-
 				return minesweeper
 			}
 
-			style = SuccessOverlayStyle
 			screen.Clear()
 			DrawOverlay(
-				screen, style,
+				screen, SuccessOverlayStyle,
 				[]string{
 					"NG board successfully generated!😎",
 					fmt.Sprintf("It only took %d attempts😤", attempt),
@@ -107,14 +106,16 @@ func WaitForNGBoard(screen tcell.Screen, cfg DifficultyConfig) *Minesweeper {
 			return minesweeper
 
 		case attempt = <-progressCh:
+
 		case <-ticker.C:
-			style = DefaultOverlayStyle
 			msgs := []string{
 				fmt.Sprintf("%s %c", loadingMsg, spinner[idx%len(spinner)]),
 				fmt.Sprintf("Attempt: %4d/%d", attempt, TRIES),
+				"",
+				"Press 'q' or 'Esc' key to cancel NG mode",
 			}
 			screen.Clear()
-			DrawOverlay(screen, style, msgs, DEFAULT_MARGIN_X, DEFAULT_MARGIN_Y)
+			DrawOverlay(screen, DefaultOverlayStyle, msgs, DEFAULT_MARGIN_X, DEFAULT_MARGIN_Y)
 			screen.Show()
 			idx++
 		}
@@ -142,66 +143,98 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 		m.DrawSmiley(screen, mScreenY, opts.Style, lastMouseButtons)
 		screen.Show()
 
-		ev := screen.PollEvent()
+		select {
+		case ev := <-eventCh:
+			switch ev := ev.(type) {
+			case *tcell.EventResize:
+				screen.Sync()
+			case *tcell.EventKey:
+				switch ev.Key() {
+				case tcell.KeyEsc:
+					return StateMenu
+				case tcell.KeyRune:
+					switch ev.Rune() {
+					case 'q':
+						playing = false
+					case 'r':
+						StopAllSounds()
+						if ng {
+							ctx, cancel := context.WithCancel(context.Background())
+							doneCh := make(chan *Minesweeper, 1)
 
-		switch ev := ev.(type) {
-		case *tcell.EventResize:
-			screen.Sync()
-		case *tcell.EventKey:
-			switch ev.Key() {
-			case tcell.KeyEsc:
-				return StateMenu
-			case tcell.KeyRune:
-				switch ev.Rune() {
-				case 'q':
-					playing = false
-				case 'r':
-					StopAllSounds()
-					if ng {
-						m = WaitForNGBoard(screen, opts.Difficulty)
-					} else {
-						m, err = GenerateBoardWithStartCell(opts.Difficulty)
-					}
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-			}
-		case *tcell.EventMouse:
-			x, y := ev.Position()
-			btn := ev.Buttons()
+							go func() {
+								doneCh <- WaitForNGBoard(ctx, screen, opts.Difficulty)
+							}()
 
-			switch btn {
-			case tcell.Button1, tcell.Button2:
-				if ox < 0 && oy < 0 {
-					ox, oy = x, y
-					lastMouseButtons = btn
-				}
-			case tcell.ButtonNone:
-				if ox >= 0 {
-					row, col, ok := m.ScreenToGrid(x, y, mScreenX, mScreenY, opts.ShowInnerBorders)
-					if ok {
-						switch lastMouseButtons {
-						case tcell.Button1:
-							if ok := m.Reveal(row, col, true); ok {
-								if m.IsGameOver {
-									if m.IsWon {
-										PlaySound("win")
-									} else {
-										PlaySound("bomb")
+							regenerating := true
+							for regenerating {
+								select {
+								case newM := <-doneCh:
+									cancel()
+									m = newM
+									regenerating = false
+								case regEv := <-eventCh:
+									switch regEv := regEv.(type) {
+									case *tcell.EventKey:
+										if regEv.Rune() == 'q' || regEv.Key() == tcell.KeyEsc {
+											cancel()
+											m = nil
+											regenerating = false
+										}
 									}
-								} else {
-									PlaySound("cellClear")
+								default:
 								}
 							}
-						case tcell.Button2:
-							m.Flag(row, col)
+
+							cancel()
+							if m == nil {
+								return StateMenu
+							}
+						} else {
+							m, err = GenerateBoardWithStartCell(opts.Difficulty)
+						}
+						if err != nil {
+							log.Fatal(err)
 						}
 					}
-					ox, oy = -1, -1
-					lastMouseButtons = tcell.ButtonNone
+				}
+			case *tcell.EventMouse:
+				x, y := ev.Position()
+				btn := ev.Buttons()
+
+				switch btn {
+				case tcell.Button1, tcell.Button2:
+					if ox < 0 && oy < 0 {
+						ox, oy = x, y
+						lastMouseButtons = btn
+					}
+				case tcell.ButtonNone:
+					if ox >= 0 {
+						row, col, ok := m.ScreenToGrid(x, y, mScreenX, mScreenY, opts.ShowInnerBorders)
+						if ok {
+							switch lastMouseButtons {
+							case tcell.Button1:
+								if ok := m.Reveal(row, col, true); ok {
+									if m.IsGameOver {
+										if m.IsWon {
+											PlaySound("win")
+										} else {
+											PlaySound("bomb")
+										}
+									} else {
+										PlaySound("cellClear")
+									}
+								}
+							case tcell.Button2:
+								m.Flag(row, col)
+							}
+						}
+						ox, oy = -1, -1
+						lastMouseButtons = tcell.ButtonNone
+					}
 				}
 			}
+		default:
 		}
 	}
 

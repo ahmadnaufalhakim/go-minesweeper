@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gdamore/tcell/v2"
@@ -19,6 +20,8 @@ const (
 	TRIES              = 1000
 	MAX_COMPONENT_SIZE = 18
 )
+
+var eventCh chan tcell.Event
 
 func main() {
 	// Initialize screen
@@ -42,6 +45,14 @@ func main() {
 	}
 	defer quit()
 
+	eventCh = make(chan tcell.Event, 128)
+	go func() {
+		for {
+			ev := screen.PollEvent()
+			eventCh <- ev
+		}
+	}()
+
 	screen.SetStyle(DefaultStyle)
 
 	gameOptions := NewGameOptions()
@@ -55,10 +66,45 @@ func main() {
 		if state == StatePlaying {
 			var minesweeper *Minesweeper
 			if ng {
-				minesweeper = WaitForNGBoard(screen, cfg)
+				ctx, cancel := context.WithCancel(context.Background())
+				doneCh := make(chan *Minesweeper, 1)
+				go func() {
+					doneCh <- WaitForNGBoard(ctx, screen, cfg)
+				}()
+
+				generating := true
+				for generating {
+					select {
+					case ev := <-eventCh:
+						switch ev := ev.(type) {
+						case *tcell.EventKey:
+							if (ev.Key() == tcell.KeyRune && ev.Rune() == 'q') || ev.Key() == tcell.KeyEsc {
+								cancel()
+								minesweeper = nil
+								generating = false
+							}
+						case *tcell.EventResize:
+							screen.Sync()
+						default:
+						}
+					case m := <-doneCh:
+						cancel()
+						minesweeper = m
+						generating = false
+					}
+				}
+
+				cancel()
+				if minesweeper == nil {
+					continue
+				}
 			} else {
-				minesweeper, _ = GenerateBoardWithStartCell(cfg)
+				minesweeper, err = GenerateBoardWithStartCell(cfg)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
+
 			RunGame(screen, minesweeper, gameOptions, ng)
 		}
 	}
