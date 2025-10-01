@@ -67,6 +67,8 @@ func main() {
 			var minesweeper *Minesweeper
 			if ng {
 				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				doneCh := make(chan *Minesweeper, 1)
 				go func() {
 					doneCh <- WaitForNGBoard(ctx, screen, cfg)
@@ -80,21 +82,16 @@ func main() {
 						case *tcell.EventKey:
 							if (ev.Key() == tcell.KeyRune && ev.Rune() == 'q') || ev.Key() == tcell.KeyEsc {
 								cancel()
-								minesweeper = nil
-								generating = false
 							}
 						case *tcell.EventResize:
 							screen.Sync()
-						default:
 						}
 					case m := <-doneCh:
-						cancel()
 						minesweeper = m
 						generating = false
 					}
 				}
 
-				cancel()
 				if minesweeper == nil {
 					continue
 				}

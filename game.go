@@ -69,6 +69,17 @@ func WaitForNGBoard(ctx context.Context, screen tcell.Screen, cfg DifficultyConf
 	for {
 		select {
 		case <-ctx.Done():
+			screen.Clear()
+			DrawOverlay(
+				screen, FailedOverlayStyle,
+				[]string{
+					"NG board generation cancelled😮",
+					"Returning to main menu ..",
+				},
+				DEFAULT_MARGIN_X, DEFAULT_MARGIN_Y,
+			)
+			screen.Show()
+			time.Sleep(2000 * time.Millisecond)
 			return nil
 
 		case minesweeper := <-minesweeperCh:
@@ -160,8 +171,9 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 						StopAllSounds()
 						if ng {
 							ctx, cancel := context.WithCancel(context.Background())
-							doneCh := make(chan *Minesweeper, 1)
+							defer cancel()
 
+							doneCh := make(chan *Minesweeper, 1)
 							go func() {
 								doneCh <- WaitForNGBoard(ctx, screen, opts.Difficulty)
 							}()
@@ -169,24 +181,19 @@ func RunGame(screen tcell.Screen, m *Minesweeper, opts *GameOptions, ng bool) Ga
 							regenerating := true
 							for regenerating {
 								select {
-								case newM := <-doneCh:
-									cancel()
-									m = newM
-									regenerating = false
 								case regEv := <-eventCh:
 									switch regEv := regEv.(type) {
 									case *tcell.EventKey:
 										if regEv.Rune() == 'q' || regEv.Key() == tcell.KeyEsc {
 											cancel()
-											m = nil
-											regenerating = false
 										}
 									}
-								default:
+								case newM := <-doneCh:
+									m = newM
+									regenerating = false
 								}
 							}
 
-							cancel()
 							if m == nil {
 								return StateMenu
 							}
